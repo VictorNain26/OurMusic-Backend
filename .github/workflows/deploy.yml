@@ -31,7 +31,7 @@ jobs:
             git pull origin master
 
             # Reconstruire l'image Docker "backend" sans cache
-            docker-compose build --no-cache backend
+            docker compose build --no-cache backend
 
             # Relancer le container en arrière-plan
-            docker-compose up -d backend
+            docker compose up -d backend
