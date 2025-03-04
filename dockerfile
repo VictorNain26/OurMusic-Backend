@@ -15,10 +15,6 @@ RUN pipx ensurepath && \
     pipx install spotdl --system-site-packages && \
     pipx install yt-dlp --system-site-packages
 
-# Vérifier que spotdl et yt-dlp sont bien installés
-RUN spotdl --version && which spotdl
-RUN yt-dlp --version && which yt-dlp
-
 # Définir le répertoire de travail
 WORKDIR /app
 
