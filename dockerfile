@@ -1,7 +1,7 @@
 # Utiliser une image officielle Node (ici Node 18 sur Debian Bullseye)
 FROM node:18-bullseye
 
-# Mettre à jour apt-get et installer toutes les bibliothèques nécessaires pour Puppeteer
+# Mettre à jour apt-get et installer toutes les bibliothèques nécessaires pour Puppeteer/Lightpanda
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
@@ -41,6 +41,9 @@ RUN curl -L -o /usr/local/bin/lightpanda https://github.com/lightpanda-io/browse
 RUN pip3 install pipx && pipx ensurepath && \
     pipx install spotdl --system-site-packages && \
     pipx install yt-dlp --system-site-packages
+
+# Ajouter le répertoire de pipx dans le PATH pour que spotdl et yt-dlp soient trouvés
+ENV PATH="/root/.local/bin:$PATH"
 
 # Définir le répertoire de travail
 WORKDIR /app
