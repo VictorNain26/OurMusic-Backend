@@ -1,7 +1,7 @@
 # Utiliser une image officielle Node (ici Node 18 sur Debian Bullseye)
 FROM node:18-bullseye
 
-# Mettre à jour apt-get et installer les paquets nécessaires
+# Mettre à jour apt-get et installer toutes les bibliothèques nécessaires pour Puppeteer
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
@@ -10,13 +10,30 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-venv \
     ffmpeg \
-    firefox-esr
+    firefox-esr \
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libgtk-3-0 \
+    libasound2 \
+    gconf-service \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libgconf-2-4 \
+    libnspr4 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils \
+    libgbm1 \
+    libxshmfence1
 
 # Installer Bun via le script officiel et mettre à jour le PATH
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:$PATH"
 
-# Installer Lightpanda à partir des nightly builds pour Linux x86_64 et le rendre exécutable
+# Installer Lightpanda (version Linux x86_64) et le rendre exécutable
 RUN curl -L -o /usr/local/bin/lightpanda https://github.com/lightpanda-io/browser/releases/download/nightly/lightpanda-x86_64-linux && \
     chmod a+x /usr/local/bin/lightpanda
 
