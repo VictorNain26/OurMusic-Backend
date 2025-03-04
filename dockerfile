@@ -36,5 +36,5 @@ COPY . .
 # Exposer le port de l'application (3000 par défaut)
 EXPOSE 3000
 
-# Démarrer le script de démarrage
-CMD ["bun", "index.js"]
+# Démarrer le serveur depuis le dossier src
+CMD ["bun", "src/server.js"]
