@@ -1,25 +1,19 @@
-# Utiliser l'image Node 18 Alpine (minimale)
-FROM node:18-alpine
+# Utiliser l'image officielle de Bun
+FROM oven/bun:latest
 
-# Installer les paquets nécessaires (on ajoute firefox)
+# Installer les paquets nécessaires (curl, unzip, bash, python3, py3-pip, pipx, ffmpeg, firefox)
 RUN apk add --no-cache curl unzip bash python3 py3-pip pipx ffmpeg firefox
 
-# Installer Bun via le script officiel
-RUN curl -fsSL https://bun.sh/install | bash
+# Installer Lightpanda à partir des nightly builds pour Linux x86_64
+RUN curl -L -o /usr/local/bin/lightpanda https://github.com/lightpanda-io/browser/releases/download/nightly/lightpanda-x86_64-linux && \
+    chmod a+x /usr/local/bin/lightpanda
 
-# Ajouter Bun au PATH
-ENV BUN_INSTALL="/root/.bun"
-ENV PATH="${BUN_INSTALL}/bin:${PATH}"
-
-# Vérifier l'installation de Bun
-RUN bun --version
-
-# Configurer pipx et installer spotdl + yt-dlp
+# Configurer pipx et installer spotdl et yt-dlp
 ENV PIPX_BIN_DIR=/usr/local/bin
 ENV PIPX_HOME=/usr/local/pipx
-RUN pipx ensurepath
-RUN pipx install spotdl --system-site-packages
-RUN pipx install yt-dlp --system-site-packages
+RUN pipx ensurepath && \
+    pipx install spotdl --system-site-packages && \
+    pipx install yt-dlp --system-site-packages
 
 # Vérifier que spotdl et yt-dlp sont bien installés
 RUN spotdl --version && which spotdl
@@ -37,8 +31,9 @@ RUN bun install
 # Copier le reste du code source
 COPY . .
 
-# Exposer le port de Bun (3000, par défaut)
+# Exposer le port de l'application (par défaut 3000)
 EXPOSE 3000
 
-# Démarrer l'application Bun (index.js)
-CMD ["bun", "index.js"]
+# Démarrer Lightpanda en mode CDP (port 9222) en arrière-plan,
+# puis lancer l'application Bun (index.js)
+CMD ["sh", "-c", "lightpanda serve --host 127.0.0.1 --port 9222 & bun index.js"]

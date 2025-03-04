@@ -1,6 +1,8 @@
+// index.js
 import * as fs from "fs/promises";
 import path from "path";
 import axios from "axios";
+import puppeteer from "puppeteer";
 
 const {
   SPOTIFY_CLIENT_ID,
@@ -27,6 +29,10 @@ if (!PLAYLIST_PATH || !COOKIE_FILE) {
 const port = Number(PORT) || 3000;
 let cachedToken = null;
 let tokenExpiry = 0;
+
+// ----------------------------------------------------------------
+// Fonctions utilitaires
+// ----------------------------------------------------------------
 
 function getCorsHeaders(req) {
   const origin = req.headers.get("Origin") || "https://ourmusic.fr";
@@ -69,6 +75,14 @@ async function runCommand(cmd, options = {}) {
   return stdoutText.trim();
 }
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ----------------------------------------------------------------
+// Fonctions Spotify existantes (token, playlists, cookies, sync via spotdl)
+// ----------------------------------------------------------------
+
 async function getSpotifyAccessToken() {
   const now = Date.now();
   if (cachedToken && now < tokenExpiry) return cachedToken;
@@ -104,7 +118,7 @@ async function getOurMusicPlaylists(token) {
   } catch (error) {
     if (error.response && error.response.status === 404) {
       console.error(
-        `Utilisateur Spotify non trouvé ou playlists privées. Vérifiez SPOTIFY_USER_ID (${SPOTIFY_USER_ID}) et assurez-vous que les playlists sont publiques.`
+        `Utilisateur Spotify non trouvé ou playlists privées. Vérifiez SPOTIFY_USER_ID (${SPOTIFY_USER_ID}).`
       );
     }
     console.error("Erreur lors de la récupération des playlists Spotify:", error);
@@ -117,10 +131,6 @@ async function createPlaylistDirectory(playlist) {
   const playlistDirPath = path.join(PLAYLIST_PATH, safeName);
   await ensureDirectoryExists(playlistDirPath);
   return playlistDirPath;
-}
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function createSyncFile(playlist, playlistDirPath, sendEvent) {
@@ -146,7 +156,6 @@ async function createSyncFile(playlist, playlistDirPath, sendEvent) {
   return syncFilePath;
 }
 
-// Fonction de synchronisation d'une playlist à partir d'un fichier de synchronisation existant
 async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent) {
   const cmd = [
     "spotdl",
@@ -165,7 +174,6 @@ async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent) {
   }
 }
 
-// Fonction de création du cookie (inchangée)
 async function createCookieFile(sendEvent) {
   const cookieAgeLimit = 24 * 60 * 60 * 1000; // 24h en ms
   try {
@@ -199,7 +207,176 @@ async function createCookieFile(sendEvent) {
   }
 }
 
-// Fonction principale de synchronisation avec rate limiting
+// ----------------------------------------------------------------
+// Partie Scraping et mise à jour Spotify via Scraping
+// ----------------------------------------------------------------
+
+/**
+ * Recherche un morceau sur Spotify par artiste et titre.
+ * Retourne l'URI du morceau si trouvé, sinon null.
+ */
+async function searchTrackOnSpotify(artist, title, token) {
+  const query = encodeURIComponent(`track:${title} artist:${artist}`);
+  const url = `https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`;
+  try {
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (response.data.tracks.items.length > 0) {
+      return response.data.tracks.items[0].uri;
+    }
+    return null;
+  } catch (err) {
+    console.error(`Erreur lors de la recherche de "${artist} - ${title}" :`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Scrape les morceaux pour plusieurs genres sur plusieurs pages.
+ * Renvoie un objet dont chaque clé est un genre et la valeur est un tableau de morceaux ({ artist, title, tags }).
+ */
+async function scrapeTracksForGenres(genres, pagesPerGenre, excludedTags) {
+  const browser = await puppeteer.launch({
+    browserWSEndpoint: 'ws://127.0.0.1:9222',
+    headless: true,
+    args: ['--no-sandbox']
+  });
+  const page = await browser.newPage();
+  const results = {};
+  for (const genre of genres) {
+    results[genre] = [];
+    for (let pageNum = 1; pageNum <= pagesPerGenre; pageNum++) {
+      let url = `https://hypem.com/tags/${genre}`;
+      if (pageNum > 1) {
+        url += `/${pageNum}`;
+      }
+      console.log(`Scraping ${url}`);
+      await page.goto(url, { waitUntil: 'networkidle2' });
+      await page.waitForSelector('h3.track_name');
+      const tracks = await page.evaluate((excluded) => {
+        const trackElements = Array.from(document.querySelectorAll('h3.track_name'));
+        return trackElements.map(el => {
+          const artist = el.querySelector('a.artist')?.innerText.trim() || '';
+          const title = el.querySelector('a.track')?.innerText.trim() || '';
+          const sectionPlayer = el.closest('.section-player');
+          const tagContainer = sectionPlayer ? sectionPlayer.querySelector('ul.tags') : null;
+          const tags = tagContainer
+            ? Array.from(tagContainer.querySelectorAll('a')).map(a => a.innerText.trim())
+            : [];
+          const lowerTags = tags.map(t => t.toLowerCase());
+          if (excluded.some(ex => lowerTags.includes(ex.toLowerCase()))) {
+            return null;
+          }
+          return { artist, title, tags };
+        }).filter(track => track !== null);
+      }, excludedTags);
+      results[genre].push(...tracks);
+    }
+    // Déduplication au sein de chaque genre (par combinaison artiste - titre)
+    const seen = new Set();
+    results[genre] = results[genre].filter(track => {
+      const key = track.artist.toLowerCase() + " - " + track.title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+  await browser.close();
+  return results;
+}
+
+/**
+ * Pour chaque genre scrappé, recherche sur Spotify les morceaux correspondants,
+ * crée (ou récupère) une playlist dédiée et ajoute les nouveaux morceaux.
+ */
+async function updateSpotifyPlaylistsFromScraping(sendEvent) {
+  const genres = ['electronic', 'indie+rock', 'hip+hop', 'pop', 'rock', 'house'];
+  const pagesPerGenre = 2;
+  const excludedTags = ['rap', 'trance'];
+
+  const scrapedData = await scrapeTracksForGenres(genres, pagesPerGenre, excludedTags);
+  const token = await getSpotifyAccessToken();
+
+  for (const genre of genres) {
+    const tracks = scrapedData[genre];
+    console.log(`Genre "${genre}" - ${tracks.length} morceaux scrappés.`);
+    const trackUris = [];
+    for (const track of tracks) {
+      const uri = await searchTrackOnSpotify(track.artist, track.title, token);
+      if (uri) {
+        trackUris.push(uri);
+      }
+      await delay(500);
+    }
+    console.log(`Genre "${genre}" - ${trackUris.length} morceaux trouvés sur Spotify.`);
+    const targetPlaylistName = `OurMusic - ${genre}`;
+    let playlist;
+    try {
+      const playlistsResponse = await axios.get(`https://api.spotify.com/v1/users/${SPOTIFY_USER_ID}/playlists`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      playlist = playlistsResponse.data.items.find(p => p.name.toLowerCase() === targetPlaylistName.toLowerCase());
+    } catch (err) {
+      console.error("Erreur lors de la récupération des playlists :", err.message);
+    }
+    if (!playlist) {
+      try {
+        const createResponse = await axios.post(
+          `https://api.spotify.com/v1/users/${SPOTIFY_USER_ID}/playlists`,
+          {
+            name: targetPlaylistName,
+            description: `Playlist générée automatiquement pour le genre ${genre}`,
+            public: false
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            }
+          }
+        );
+        playlist = createResponse.data;
+      } catch (err) {
+        sendEvent({ error: `Erreur lors de la création de la playlist pour "${genre}" : ${err.message}` });
+        continue;
+      }
+    }
+    let existingUris = [];
+    try {
+      const url = `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?fields=items(track(uri))&limit=100`;
+      const response = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+      existingUris = response.data.items.map(item => item.track.uri);
+    } catch (err) {
+      console.error(`Erreur lors de la récupération des tracks de la playlist ${playlist.id} :`, err.message);
+    }
+    const newUris = trackUris.filter(uri => !existingUris.includes(uri));
+    if (newUris.length > 0) {
+      try {
+        await axios.post(
+          `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
+          { uris: newUris },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            }
+          }
+        );
+        sendEvent({ message: `Ajout de ${newUris.length} nouveaux morceaux dans la playlist "${playlist.name}" pour le genre "${genre}".` });
+      } catch (err) {
+        sendEvent({ error: `Erreur lors de l'ajout de morceaux à la playlist "${playlist.name}" : ${err.message}` });
+      }
+    } else {
+      sendEvent({ message: `Aucun nouveau morceau à ajouter dans la playlist "${playlist.name}" pour le genre "${genre}".` });
+    }
+  }
+}
+
+// ----------------------------------------------------------------
+// Fonction de synchronisation (Spotify download via spotdl)
+// ----------------------------------------------------------------
+
 async function syncEverything(sendEvent) {
   sendEvent({ message: "Début de la synchronisation" });
   
@@ -231,7 +408,6 @@ async function syncEverything(sendEvent) {
     
     count++;
     sendEvent({ message: `Traitement de la playlist '${playlist.name}' terminé (${count}/${total}).` });
-    // Délai entre chaque synchronisation pour limiter le débit
     await delay(Number(RATE_LIMIT_MS));
   }
   
@@ -244,6 +420,10 @@ async function syncEverything(sendEvent) {
   sendEvent({ message: "Toutes les playlists ont été synchronisées avec succès !" });
 }
 
+// ----------------------------------------------------------------
+// Serveur Bun avec deux endpoints SSE
+// ----------------------------------------------------------------
+
 Bun.serve({
   port,
   idleTimeout: 0,
@@ -255,8 +435,8 @@ Bun.serve({
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // Endpoint SSE pour la synchronisation des playlists Spotify
-    if (url.pathname === "/api/live/spotify/sse") {
+    // Endpoint pour le scraping et la création/mise à jour des playlists Spotify
+    if (url.pathname === "/api/live/spotify/scrape") {
       const headers = {
         ...corsHeaders,
         "Content-Type": "text/event-stream",
@@ -266,14 +446,42 @@ Bun.serve({
 
       const stream = new ReadableStream({
         async start(controller) {
-          // Envoi initial de connexion
-          controller.enqueue(
-            `data: ${JSON.stringify({ connect: { time: Math.floor(Date.now() / 1000) } })}\n\n`
-          );
-          const enqueue = controller.enqueue.bind(controller);
-          // Heartbeat toutes les 30 secondes
+          controller.enqueue(`data: ${JSON.stringify({ connect: { time: Math.floor(Date.now() / 1000) } })}\n\n`);
           const heartbeat = setInterval(() => {
-            enqueue(`data: ${JSON.stringify({ pub: { heartbeat: Date.now() } })}\n\n`);
+            controller.enqueue(`data: ${JSON.stringify({ pub: { heartbeat: Date.now() } })}\n\n`);
+          }, 30000);
+
+          function sendEvent(data) {
+            controller.enqueue(`data: ${JSON.stringify({ pub: data })}\n\n`);
+          }
+
+          try {
+            await updateSpotifyPlaylistsFromScraping(sendEvent);
+            sendEvent({ message: "Mise à jour Spotify via scraping terminée." });
+          } catch (error) {
+            sendEvent({ error: error.message });
+          } finally {
+            clearInterval(heartbeat);
+            controller.close();
+          }
+        }
+      });
+      return new Response(stream, { headers });
+    }
+    // Endpoint pour la synchronisation des playlists Spotify et le téléchargement
+    else if (url.pathname === "/api/live/spotify/sync") {
+      const headers = {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      };
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(`data: ${JSON.stringify({ connect: { time: Math.floor(Date.now() / 1000) } })}\n\n`);
+          const heartbeat = setInterval(() => {
+            controller.enqueue(`data: ${JSON.stringify({ pub: { heartbeat: Date.now() } })}\n\n`);
           }, 30000);
 
           function sendEvent(data) {
@@ -282,13 +490,14 @@ Bun.serve({
 
           try {
             await syncEverything(sendEvent);
+            sendEvent({ message: "Synchronisation Spotify et téléchargement terminés." });
           } catch (error) {
             sendEvent({ error: error.message });
           } finally {
             clearInterval(heartbeat);
             controller.close();
           }
-        },
+        }
       });
       return new Response(stream, { headers });
     }

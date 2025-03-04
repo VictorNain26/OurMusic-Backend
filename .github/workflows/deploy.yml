@@ -27,7 +27,7 @@ jobs:
             # Se placer dans le dossier cloné sur ton VPS (assure-toi d'avoir cloné le dépôt une première fois)
             cd ~/Ourmusic/backend
             
-            # Mettre à jour le code depuis la branche main
+            # Mettre à jour le code depuis la branche master
             git pull origin master
 
             # Reconstruire l'image Docker "backend" sans cache
