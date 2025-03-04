@@ -33,8 +33,12 @@ RUN bun install
 # Copier le reste du code source
 COPY . .
 
+# Copier le script de démarrage et lui donner les droits d'exécution
+COPY start.sh ./
+RUN chmod +x start.sh
+
 # Exposer le port de l'application (3000 par défaut)
 EXPOSE 3000
 
-# Démarrer Lightpanda en mode serveur CDP (port 9222) en arrière-plan, puis lancer l'application Bun
-CMD ["sh", "-c", "lightpanda serve --host 127.0.0.1 --port 9222 & bun index.js"]
+# CMD : démarrer le script de démarrage
+CMD ["./start.sh"]
