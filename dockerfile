@@ -41,4 +41,4 @@ RUN chmod +x start.sh
 EXPOSE 3000
 
 # Démarrer le script de démarrage
-CMD ["./start.sh"]
+CMD ["bun", "index.js"]
