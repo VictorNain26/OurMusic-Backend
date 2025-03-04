@@ -33,10 +33,6 @@ RUN bun install
 # Copier le reste du code source
 COPY . .
 
-# Copier le script de démarrage et le rendre exécutable
-COPY start.sh ./
-RUN chmod +x start.sh
-
 # Exposer le port de l'application (3000 par défaut)
 EXPOSE 3000
 
