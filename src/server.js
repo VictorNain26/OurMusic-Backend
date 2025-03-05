@@ -183,6 +183,51 @@ async function handleSpotifySync(sendEvent) {
   sendEvent({ message: "Toutes les playlists ont été synchronisées avec succès !" });
 }
 
+async function handleIndividualSpotifySync(sendEvent, playlistId) {
+  sendEvent({ message: `Début de la synchronisation pour la playlist ${playlistId}` });
+  await createCookieFile(sendEvent);
+  await ensureDirectoryExists("/root/.spotdl/temp");
+  const token = await getSpotifyAccessToken();
+  let playlist;
+  try {
+    // On récupère toutes les playlists de l'utilisateur
+    const playlists = await getAllUserPlaylists(token);
+    // On cherche la playlist correspondant à l'ID fourni
+    playlist = playlists.find(p => p.id === playlistId);
+    if (!playlist) {
+      sendEvent({ error: `Playlist avec l'ID ${playlistId} non trouvée.` });
+      return;
+    }
+  } catch (err) {
+    sendEvent({ error: err.message });
+    return;
+  }
+  
+  // Création du dossier et du fichier de synchronisation
+  const playlistDirPath = await createPlaylistDirectory(playlist);
+  const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
+  const syncFilePath = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
+
+  if (await fileExists(syncFilePath)) {
+    sendEvent({ message: `Le fichier de synchronisation pour '${playlist.name}' existe déjà. Lancement de la synchronisation.` });
+    await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
+  } else {
+    sendEvent({ message: `Création du fichier de synchronisation pour '${playlist.name}'.` });
+    await createSyncFile(playlist, playlistDirPath, sendEvent);
+    await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
+  }
+  
+  try {
+    await runCommand(["chmod", "-R", "777", process.env.PLAYLIST_PATH]);
+    sendEvent({ message: `Permissions 777 appliquées récursivement sur ${process.env.PLAYLIST_PATH}` });
+  } catch (err) {
+    sendEvent({ error: `Erreur lors de l'application des permissions : ${err.message}` });
+  }
+  
+  sendEvent({ message: `La playlist '${playlist.name}' a été synchronisée avec succès !` });
+}
+
+
 Bun.serve({
   port,
   idleTimeout: 0,
@@ -204,7 +249,20 @@ Bun.serve({
         },
       });
     } else if (url.pathname === "/api/live/spotify/sync") {
+      // Synchronisation de toutes les playlists
       return new Response(createSSEStream(handleSpotifySync), {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    } else if (url.pathname.startsWith("/api/live/spotify/sync/")) {
+      // Extraction de l'ID de la playlist depuis l'URL
+      const parts = url.pathname.split("/");
+      const playlistId = parts[parts.length - 1];
+      return new Response(createSSEStream((sendEvent) => handleIndividualSpotifySync(sendEvent, playlistId)), {
         headers: {
           ...corsHeaders,
           "Content-Type": "text/event-stream",
@@ -217,5 +275,6 @@ Bun.serve({
     return new Response("Not found", { status: 404, headers: corsHeaders });
   },
 });
+
 
 console.log(`Serveur Bun démarré sur le port ${port}`);
