@@ -168,7 +168,6 @@ async function handleSpotifySync(sendEvent) {
     } else {
       sendEvent({ message: `Création du fichier de synchronisation pour '${playlist.name}'.` });
       await createSyncFile(playlist, playlistDirPath, sendEvent);
-      await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
     }
     count++;
     sendEvent({ message: `Traitement de la playlist '${playlist.name}' terminé (${count}/${playlists.length}).` });
