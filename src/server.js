@@ -15,6 +15,10 @@ import { scrapeTracksForGenres } from "./scraper.js";
 import axios from "axios";
 import path from "path";
 import { ensureDirectoryExists, fileExists, runCommand } from "./utils.js";
+import jwt from "jsonwebtoken";
+import User from "./models/User.js";
+
+const JWT_SECRET = process.env.JWT_SECRET || "votre_secret_a_changer";
 
 const { PORT, RATE_LIMIT_MS } = Bun.env;
 const port = Number(PORT) || 3000;
@@ -226,7 +230,6 @@ async function handleIndividualSpotifySync(sendEvent, playlistId) {
   sendEvent({ message: `La playlist '${playlist.name}' a été synchronisée avec succès !` });
 }
 
-
 Bun.serve({
   port,
   idleTimeout: 0,
@@ -234,8 +237,78 @@ Bun.serve({
     const url = new URL(req.url);
     const corsHeaders = getCorsHeaders(req);
 
+    // Gérer les requêtes OPTIONS
     if (req.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    // Endpoint d'inscription
+    if (url.pathname === "/api/auth/register" && req.method === "POST") {
+      try {
+        const { username, email, password } = await req.json();
+        if (!username || !email || !password) {
+          return new Response(
+            JSON.stringify({ error: "Champs manquants" }),
+            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+        // Vérifier qu'un utilisateur avec cet email n'existe pas déjà
+        const existingUser = await User.findOne({ where: { email } });
+        if (existingUser) {
+          return new Response(
+            JSON.stringify({ error: "Un utilisateur avec cet email existe déjà" }),
+            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+        const newUser = await User.create({ username, email, password });
+        return new Response(
+          JSON.stringify({
+            message: "Utilisateur créé avec succès",
+            user: { id: newUser.id, username: newUser.username, email: newUser.email },
+          }),
+          { status: 201, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      } catch (err) {
+        return new Response(
+          JSON.stringify({ error: err.message }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+
+    // Endpoint de connexion
+    if (url.pathname === "/api/auth/login" && req.method === "POST") {
+      try {
+        const { email, password } = await req.json();
+        if (!email || !password) {
+          return new Response(
+            JSON.stringify({ error: "Email et mot de passe requis" }),
+            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+        const user = await User.findOne({ where: { email } });
+        if (!user || !(await user.verifyPassword(password))) {
+          return new Response(
+            JSON.stringify({ error: "Identifiants invalides" }),
+            { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+        // Création du token JWT
+        const token = jwt.sign(
+          { id: user.id, username: user.username, email: user.email },
+          JWT_SECRET,
+          { expiresIn: "1h" }
+        );
+        return new Response(
+          JSON.stringify({ message: "Connexion réussie", token }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      } catch (err) {
+        return new Response(
+          JSON.stringify({ error: err.message }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
     }
 
     if (url.pathname === "/api/live/spotify/scrape") {
@@ -274,6 +347,5 @@ Bun.serve({
     return new Response("Not found", { status: 404, headers: corsHeaders });
   },
 });
-
 
 console.log(`Serveur Bun démarré sur le port ${port}`);
