@@ -1,7 +1,6 @@
-# Base Node avec Debian (nécessaire pour Sequelize CLI et Puppeteer)
 FROM node:20-bullseye
 
-# Installer les dépendances nécessaires pour Puppeteer, Sequelize CLI et SpotDL
+# Installer les dépendances nécessaires
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
@@ -24,33 +23,27 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:$PATH"
 
-# Installer pipx et spotdl/yt-dlp
-RUN apt-get install -y python3 python3-pip && pip3 install pipx && pipx install spotdl yt-dlp
-ENV PATH=/root/.local/bin:$PATH
+# Installer pipx, spotdl et yt-dlp
+RUN pip3 install pipx && pipx install spotdl yt-dlp
+ENV PATH="/root/.local/bin:$PATH"
 
-# Installer Sequelize CLI globalement
+# Installer sequelize-cli globalement
 RUN npm install -g sequelize-cli
 
-# Définir le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers de dépendances et installer via Bun
+# Copier et installer les dépendances
 COPY package.json bun.lockb* ./
 RUN bun install
 
-# Copier le reste de l'application
+# Copier tout le reste du code
 COPY . .
 
-# Charger les variables d'environnement au build pour les migrations
+# Copier .env
 COPY .env .env
 
-# Exécuter les migrations et seeders avec Sequelize CLI avant le démarrage du serveur
-RUN sequelize-cli db:migrate --config=config/config.js \
-    && sequelize-cli db:seed:all --config=config/config.js
-
-# Exposer le port utilisé par Bun
+# Exposer le port
 EXPOSE 3000
 
-# Lancer le serveur avec Bun
-CMD ["bash", "-c", "sleep 5 && sequelize-cli db:migrate --config=config/config.js && sequelize-cli db:seed:all --config=config/config.js && bun src/server.js"]
-
+# Lancer les migrations à l'exécution (runtime), puis démarrer le serveur
+CMD ["bash", "-c", "sequelize-cli db:migrate --config=config/config.js && sequelize-cli db:seed:all --config=config/config.js && bun src/server.js"]
