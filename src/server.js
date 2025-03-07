@@ -15,14 +15,31 @@ import { scrapeTracksForGenres } from "./scraper.js";
 import axios from "axios";
 import path from "path";
 import { ensureDirectoryExists, fileExists, runCommand } from "./utils.js";
+import sequelize, { initDatabase } from "./db.js";
 import jwt from "jsonwebtoken";
 import User from "./models/User.js";
-import sequelize from "./db.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "votre_secret_a_changer";
 
 const { PORT, RATE_LIMIT_MS } = Bun.env;
 const port = Number(PORT) || 3000;
+
+await initDatabase(); // Initialise la base et crée l'admin au démarrage
+
+// Middleware pour vérifier les tokens JWT
+async function verifyToken(req) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return null;
+
+  const token = authHeader.replace("Bearer ", "");
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.id);
+    return user;
+  } catch {
+    return null;
+  }
+}
 
 function createSSEStream(handler) {
   return new ReadableStream({
@@ -238,111 +255,96 @@ Bun.serve({
     const url = new URL(req.url);
     const corsHeaders = getCorsHeaders(req);
 
-    // Gérer les requêtes OPTIONS
     if (req.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // Endpoint d'inscription
-    if (url.pathname === "/api/auth/register" && req.method === "POST") {
-      try {
+    const handlers = {
+      async register() {
         const { username, email, password } = await req.json();
         if (!username || !email || !password) {
-          return new Response(
-            JSON.stringify({ error: "Champs manquants" }),
-            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          return Response.json(
+            { error: "Tous les champs sont requis" },
+            { status: 400, headers: corsHeaders }
           );
         }
-        // Vérifier qu'un utilisateur avec cet email n'existe pas déjà
-        const existingUser = await User.findOne({ where: { email } });
-        if (existingUser) {
-          return new Response(
-            JSON.stringify({ error: "Un utilisateur avec cet email existe déjà" }),
-            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        try {
+          const newUser = await User.create({ username, email, password });
+          return Response.json(
+            { message: "Utilisateur créé", user: { id: newUser.id, email: newUser.email } },
+            { status: 201, headers: corsHeaders }
           );
+        } catch (error) {
+          return Response.json({ error: error.message }, { status: 400, headers: corsHeaders });
         }
-        const newUser = await User.create({ username, email, password });
-        return new Response(
-          JSON.stringify({
-            message: "Utilisateur créé avec succès",
-            user: { id: newUser.id, username: newUser.username, email: newUser.email },
-          }),
-          { status: 201, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      } catch (err) {
-        return new Response(
-          JSON.stringify({ error: err.message }),
-          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      }
-    }
+      },
 
-    // Endpoint de connexion
-    if (url.pathname === "/api/auth/login" && req.method === "POST") {
-      try {
+      async login() {
         const { email, password } = await req.json();
-        if (!email || !password) {
-          return new Response(
-            JSON.stringify({ error: "Email et mot de passe requis" }),
-            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
-          );
-        }
         const user = await User.findOne({ where: { email } });
         if (!user || !(await user.verifyPassword(password))) {
-          return new Response(
-            JSON.stringify({ error: "Identifiants invalides" }),
-            { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-          );
+          return Response.json({ error: "Identifiants invalides" }, { status: 401, headers: corsHeaders });
         }
-        // Création du token JWT
-        const token = jwt.sign(
-          { id: user.id, username: user.username, email: user.email },
-          JWT_SECRET,
-          { expiresIn: "1h" }
-        );
-        return new Response(
-          JSON.stringify({ message: "Connexion réussie", token }),
-          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      } catch (err) {
-        return new Response(
-          JSON.stringify({ error: err.message }),
-          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      }
-    }
+        const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "1h" });
+        return Response.json({ token }, { status: 200, headers: corsHeaders });
+      },
 
-    if (url.pathname === "/api/live/spotify/scrape") {
-      return new Response(createSSEStream(handleSpotifyScrape), {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
-      });
-    } else if (url.pathname === "/api/live/spotify/sync") {
-      // Synchronisation de toutes les playlists
-      return new Response(createSSEStream(handleSpotifySync), {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
-      });
+      async me() {
+        const user = await verifyToken(req);
+        if (!user) {
+          return Response.json({ error: "Non authentifié" }, { status: 401, headers: corsHeaders });
+        }
+        return Response.json({ id: user.id, email: user.email, username: user.username }, { headers: corsHeaders });
+      },
+
+      spotifyScrape() {
+        return new Response(createSSEStream(handleSpotifyScrape), {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
+      },
+
+      spotifySync() {
+        return new Response(createSSEStream(handleSpotifySync), {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
+      },
+
+      spotifySyncIndividual(playlistId) {
+        return new Response(createSSEStream((sendEvent) => handleIndividualSpotifySync(sendEvent, playlistId)), {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
+      },
+    };
+
+    const routeMap = {
+      "POST:/api/auth/register": handlers.register,
+      "POST:/api/auth/login": handlers.login,
+      "GET:/api/auth/me": handlers.me,
+      "GET:/api/live/spotify/scrape": handlers.spotifyScrape,
+      "GET:/api/live/spotify/sync": handlers.spotifySync,
+    };
+
+    const routeKey = `${req.method}:${url.pathname}`;
+    if (routeMap[routeKey]) {
+      return await routeMap[routeKey]();
     } else if (url.pathname.startsWith("/api/live/spotify/sync/")) {
-      // Extraction de l'ID de la playlist depuis l'URL
-      const parts = url.pathname.split("/");
-      const playlistId = parts[parts.length - 1];
-      return new Response(createSSEStream((sendEvent) => handleIndividualSpotifySync(sendEvent, playlistId)), {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
-      });
+      const playlistId = url.pathname.split("/").pop();
+      return handlers.spotifySyncIndividual(playlistId);
     }
 
     return new Response("Not found", { status: 404, headers: corsHeaders });

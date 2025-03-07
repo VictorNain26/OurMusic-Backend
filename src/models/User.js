@@ -1,41 +1,25 @@
-// src/models/User.js
-import { DataTypes } from "sequelize";
-import sequelize from "../db.js";
-import bcrypt from 'bcryptjs';
-
-const User = sequelize.define(
-  "User",
-  {
-    username: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
+// backend/models/User.js
+export default (sequelize, DataTypes) => {
+  const User = sequelize.define("User", {
+    username: { type: DataTypes.STRING, allowNull: false, unique: true },
+    email: { type: DataTypes.STRING, allowNull: false, unique: true },
+    password: { type: DataTypes.STRING, allowNull: false },
+    role: { 
+      type: DataTypes.STRING, 
+      allowNull: false, 
+      defaultValue: "user", // par défaut, rôle "user"
     },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      validate: { isEmail: true },
-    },
-    password: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
+  }, { timestamps: true });
 
-// Hachage du mot de passe avant création
-User.beforeCreate(async (user) => {
-  const saltRounds = 10;
-  user.password = await bcrypt.hash(user.password, saltRounds);
-});
+  User.beforeCreate(async (user) => {
+    const bcrypt = await import('bcryptjs');
+    user.password = await bcrypt.hash(user.password, 10);
+  });
 
-// Méthode d’instance pour vérifier le mot de passe
-User.prototype.verifyPassword = function (password) {
-  return bcrypt.compare(password, this.password);
+  User.prototype.verifyPassword = async function (password) {
+    const bcrypt = await import('bcryptjs');
+    return bcrypt.compare(password, this.password);
+  };
+
+  return User;
 };
-
-export default User;
