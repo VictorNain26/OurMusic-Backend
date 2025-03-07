@@ -17,6 +17,7 @@ import path from "path";
 import { ensureDirectoryExists, fileExists, runCommand } from "./utils.js";
 import jwt from "jsonwebtoken";
 import User from "./models/User.js";
+import sequelize from "./db.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "votre_secret_a_changer";
 
