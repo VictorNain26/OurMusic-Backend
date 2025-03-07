@@ -22,14 +22,15 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:$PATH"
 
-# Installer PNPM
-RUN npm install -g pnpm
+# Installer PNPM directement via le script officiel
+RUN curl -fsSL https://get.pnpm.io/install.sh | bash -
+ENV PATH="/root/.local/share/pnpm:$PATH"
 
 # Installer pipx, spotdl et yt-dlp
 RUN pip3 install pipx && pipx install spotdl yt-dlp
 ENV PATH="/root/.local/bin:$PATH"
 
-# Installer sequelize-cli globalement (correct avec pnpm)
+# Installer sequelize-cli globalement via pnpm
 RUN pnpm add -g sequelize-cli
 
 WORKDIR /app
@@ -37,14 +38,14 @@ WORKDIR /app
 # Copier les fichiers package.json et pnpm-lock.yaml
 COPY package.json pnpm-lock.yaml ./
 
-# Installer les dépendances (sequelize requis localement)
+# Installer les dépendances locales avec pnpm
 RUN pnpm install --frozen-lockfile
 
-# Copier tout le reste du projet
+# Copier le reste du projet
 COPY . .
 
-# Exposer le port
+# Exposer le port de l'application
 EXPOSE 3000
 
-# Lancer les migrations puis l'application au démarrage
+# Lancer les migrations puis démarrer le serveur
 CMD ["bash", "-c", "sleep 5 && sequelize-cli db:migrate --config=config/config.js && sequelize-cli db:seed:all --config=config/config.js && bun src/server.js"]
