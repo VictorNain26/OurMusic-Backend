@@ -1,6 +1,5 @@
 FROM node:20-bullseye
 
-# Installer les dépendances nécessaires
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
@@ -23,27 +22,29 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:$PATH"
 
+# Installer PNPM
+RUN npm install -g pnpm
+
 # Installer pipx, spotdl et yt-dlp
 RUN pip3 install pipx && pipx install spotdl yt-dlp
 ENV PATH="/root/.local/bin:$PATH"
 
-# Installer sequelize-cli globalement
-RUN npm install -g sequelize-cli
+# Installer sequelize-cli globalement (correct avec pnpm)
+RUN pnpm add -g sequelize-cli
 
 WORKDIR /app
 
-# Copier et installer les dépendances
-COPY package.json bun.lockb* ./
-RUN bun install
+# Copier les fichiers package.json et pnpm-lock.yaml
+COPY package.json pnpm-lock.yaml ./
 
-# Copier tout le reste du code
+# Installer les dépendances (sequelize requis localement)
+RUN pnpm install --frozen-lockfile
+
+# Copier tout le reste du projet
 COPY . .
-
-# Copier .env
-COPY .env .env
 
 # Exposer le port
 EXPOSE 3000
 
-# Lancer les migrations à l'exécution (runtime), puis démarrer le serveur
-CMD ["bash", "-c", "sequelize-cli db:migrate --config=config/config.js && sequelize-cli db:seed:all --config=config/config.js && bun src/server.js"]
+# Lancer les migrations puis l'application au démarrage
+CMD ["bash", "-c", "sleep 5 && sequelize-cli db:migrate --config=config/config.js && sequelize-cli db:seed:all --config=config/config.js && bun src/server.js"]
