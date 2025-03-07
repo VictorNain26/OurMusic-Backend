@@ -52,4 +52,5 @@ RUN sequelize-cli db:migrate --config=config/config.js \
 EXPOSE 3000
 
 # Lancer le serveur avec Bun
-CMD ["bun", "src/server.js"]
+CMD ["bash", "-c", "sleep 5 && sequelize-cli db:migrate --config=config/config.js && sequelize-cli db:seed:all --config=config/config.js && bun src/server.js"]
+
