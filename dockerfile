@@ -1,5 +1,5 @@
 # Base Node avec Debian (nécessaire pour Sequelize CLI et Puppeteer)
-FROM node:20-slim
+FROM node:20-bullseye
 
 # Installer les dépendances nécessaires pour Puppeteer, Sequelize CLI et SpotDL
 RUN apt-get update && apt-get install -y \
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-venv \
     ffmpeg \
-    firefox \
+    firefox-esr \
     build-essential \
     libgbm1 \
     libasound2 \
