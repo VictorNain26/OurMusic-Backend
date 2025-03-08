@@ -21,24 +21,24 @@ export async function initDatabase() {
     await sequelize.authenticate();
     console.log("🎉 Connexion réussie à la base de données PostgreSQL.");
 
-    await sequelize.sync({ alter: true });
+    // Vérifie si un administrateur existe déjà
+    const existingAdmin = await User.findOne({ where: { email: process.env.ADMIN_EMAIL } });
 
-    const [admin, created] = await User.findOrCreate({
-      where: { email: process.env.ADMIN_EMAIL },
-      defaults: {
+    if (!existingAdmin) {
+      // Crée uniquement l'admin s'il n'existe pas
+      await User.create({
         username: process.env.ADMIN_USERNAME,
+        email: process.env.ADMIN_EMAIL,
         password: process.env.ADMIN_PASSWORD,
-        role: "admin" // ✅ Assure-toi que le compte admin a bien le rôle "admin"
-      },
-    });
-
-    if (created) {
-      console.log(`✅ Compte administrateur créé : ${admin.email} (rôle: ${admin.role})`);
+        role: "admin",
+      });
+      console.log(`✅ Compte administrateur créé : ${process.env.ADMIN_EMAIL}`);
     } else {
-      console.log(`ℹ️ Compte administrateur déjà existant : ${admin.email} (rôle: ${admin.role})`);
+      console.log(`ℹ️ Compte administrateur déjà existant : ${existingAdmin.email}`);
     }
 
   } catch (error) {
     console.error("❌ Impossible de se connecter à la base de données :", error.message);
   }
 }
+
