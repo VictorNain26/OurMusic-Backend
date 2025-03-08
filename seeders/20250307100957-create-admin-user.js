@@ -1,10 +1,9 @@
-// seeders/create-admin-user.js
-import dotenv from 'dotenv';
-import bcrypt from 'bcryptjs';
+const dotenv = require('dotenv');
+const bcrypt = require('bcryptjs');
 
 dotenv.config();
 
-export default {
+module.exports = {
   async up(queryInterface) {
     const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
     await queryInterface.bulkInsert('Users', [{

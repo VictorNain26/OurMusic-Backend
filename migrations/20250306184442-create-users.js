@@ -1,5 +1,5 @@
-// migrations/YYYYMMDD-create-users.js
-export default {
+// migrations/20250306184442-create-users.js
+module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('Users', {
       id: {
