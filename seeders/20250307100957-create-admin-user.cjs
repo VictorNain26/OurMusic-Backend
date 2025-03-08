@@ -8,7 +8,7 @@ module.exports = {
     const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
 
     // Vérification préalable pour éviter la duplication
-    const [existingUser] = await queryInterface.sequelize.query(
+    const [existingUsers] = await queryInterface.sequelize.query(
       `SELECT id FROM "Users" WHERE username = :username LIMIT 1;`,
       {
         replacements: { username: process.env.ADMIN_USERNAME },
@@ -16,7 +16,7 @@ module.exports = {
       },
     );
 
-    if (!existingAdmin) {
+    if (!existingUsers) {
       await queryInterface.bulkInsert('Users', [
         {
           username: process.env.ADMIN_USERNAME,
