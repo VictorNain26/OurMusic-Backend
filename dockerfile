@@ -1,6 +1,6 @@
 FROM node:20-bullseye
 
-# Installer les dépendances système nécessaires
+# Installation des dépendances nécessaires pour Puppeteer, Spotdl, et yt-dlp
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
@@ -19,48 +19,51 @@ RUN apt-get update && apt-get install -y \
     libatk-bridge2.0-0 \
     libgtk-3-0
 
-# Installer Bun
+# Installation de Bun (runtime ultra-rapide pour JS)
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:$PATH"
 
-# Installer pipx, spotdl et yt-dlp
-RUN pip3 install pipx && pipx install spotdl yt-dlp
+# Installation de pipx, spotdl et yt-dlp
+RUN pip3 install pipx \
+    && pipx ensurepath \
+    && pipx install spotdl yt-dlp
+
 ENV PATH="/root/.local/bin:$PATH"
 
-# Installer pnpm proprement via script officiel
-RUN curl -fsSL https://get.pnpm.io/install.sh | bash -
+# Installation officielle de PNPM sans npm, directement via script officiel
+RUN curl -fsSL https://get.pnpm.io/install.sh | SHELL=bash bash -
 ENV PNPM_HOME="/root/.local/share/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-ENV PATH="/root/.local/share/pnpm/global/5/node_modules/.bin:$PATH"
+ENV PATH="$PNPM_HOME/global/5/node_modules/.bin:$PATH"
 
-# Configurer explicitement le répertoire global de pnpm
-RUN pnpm config set global-bin-dir /root/.local/share/pnpm/global-bin
+# Définition explicite du dossier global pour pnpm
+RUN pnpm config set global-bin-dir $PNPM_HOME/global-bin
+ENV PATH="$PNPM_HOME/global-bin:$PATH"
 
-# Initialiser explicitement PNPM (crée automatiquement les répertoires requis)
-RUN pnpm setup
-
-# Vérifier l'installation (optionnel mais recommandé)
-RUN pnpm --version
-
-# Installer sequelize-cli globalement avec pnpm
+# Installation de sequelize-cli via pnpm globalement
 RUN pnpm add -g sequelize-cli
 
+# Définition du répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers nécessaires
+# Copier uniquement les fichiers nécessaires pour installer les dépendances
 COPY package.json pnpm-lock.yaml ./
 
-# Installer les dépendances locales via pnpm
+# Installation efficace des dépendances avec pnpm
 RUN pnpm install --frozen-lockfile
 
-# Copier tout le reste du projet
+# Copier le reste du projet
 COPY . .
 
-# Copier .env
+# Copie des variables d'environnement
 COPY .env .env
 
 # Exposer le port de l'application
 EXPOSE 3000
 
-# Lancer les migrations et démarrer le serveur
-CMD ["bash", "-c", "sleep 5 && sequelize-cli db:migrate --config=config/config.js && sequelize-cli db:seed:all --config=config/config.js && bun src/server.js"]
+# Commande finale robuste avec attente explicite de la DB avant migration
+CMD ["bash", "-c", "\
+  until pg_isready -h db -p 5432; do echo 'Waiting for DB...'; sleep 3; done && \
+  sequelize-cli db:migrate --config=config/config.js && \
+  sequelize-cli db:seed:all --config=config/config.js && \
+  bun src/server.js"]
