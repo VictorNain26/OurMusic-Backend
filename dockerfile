@@ -38,5 +38,4 @@ EXPOSE 3000
 CMD ["bash", "-c", "\
   until pg_isready -h db -p 5432; do echo 'Waiting for DB...'; sleep 3; done && \
   sequelize-cli db:migrate --config=config/config.js && \
-  sequelize-cli db:seed:all --config=config/config.js && \
   bun src/server.js"]
