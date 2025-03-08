@@ -15,16 +15,13 @@ import { scrapeTracksForGenres } from "./scraper.js";
 import axios from "axios";
 import path from "path";
 import { ensureDirectoryExists, fileExists, runCommand } from "./utils.js";
-import sequelize, { initDatabase } from "./db.js";
 import jwt from "jsonwebtoken";
-import User from "./models/User.js";
-
-const JWT_SECRET = process.env.JWT_SECRET || "votre_secret_a_changer";
+import sequelize, { initDatabase, User } from "./db.js";
 
 const { PORT, RATE_LIMIT_MS } = Bun.env;
 const port = Number(PORT) || 3000;
 
-await initDatabase(); // Initialise la base et crée l'admin au démarrage
+await initDatabase();
 
 // Middleware pour vérifier les tokens JWT
 async function verifyToken(req) {
