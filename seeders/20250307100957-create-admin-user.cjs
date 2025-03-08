@@ -4,31 +4,40 @@ const bcrypt = require('bcryptjs');
 dotenv.config();
 
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface) {
     const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
 
-    // Vérifier si l'admin existe déjà avant de le créer
-    const existingAdmin = await queryInterface.rawSelect('Users', {
-      where: {
-        username: process.env.ADMIN_USERNAME,
+    // Vérification préalable pour éviter la duplication
+    const [existingUser] = await queryInterface.sequelize.query(
+      `SELECT id FROM "Users" WHERE username = :username LIMIT 1;`,
+      {
+        replacements: { username: process.env.ADMIN_USERNAME },
+        type: queryInterface.sequelize.QueryTypes.SELECT,
       },
-    }, ['id']);
+    );
 
     if (!existingAdmin) {
-      await queryInterface.bulkInsert('Users', [{
-        username: process.env.ADMIN_USERNAME,
-        email: process.env.ADMIN_EMAIL,
-        password: hashedPassword,
-        role: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }], {});
+      await queryInterface.bulkInsert('Users', [
+        {
+          username: process.env.ADMIN_USERNAME,
+          email: process.env.ADMIN_EMAIL,
+          password: hashedPassword,
+          role: 'admin',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]);
+      console.log('✅ Admin user created successfully.');
     } else {
-      console.log('Admin user existe déjà, skipping seeder.');
+      console.log('⚠️ Admin user already exists, skipping seed.');
     }
   },
 
   async down(queryInterface) {
-    await queryInterface.bulkDelete('Users', { email: process.env.ADMIN_EMAIL }, {});
-  }
+    await queryInterface.bulkDelete(
+      'Users',
+      { email: process.env.ADMIN_EMAIL },
+      {},
+    );
+  },
 };
