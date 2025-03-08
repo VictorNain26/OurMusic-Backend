@@ -1,5 +1,5 @@
 // src/db.js
-import { Sequelize } from "sequelize";
+import { Sequelize, Op } from "sequelize";
 import defineUser from "./models/User.js";
 
 const sequelize = new Sequelize(
@@ -9,7 +9,7 @@ const sequelize = new Sequelize(
   {
     host: process.env.DB_HOST || "db",
     dialect: "postgres",
-    logging: false, // Désactive les logs SQL (optionnel)
+    logging: false,
   }
 );
 
@@ -30,7 +30,12 @@ export async function initDatabase() {
     // Création de l'administrateur si les variables d'environnement sont définies
     const { ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD } = process.env;
     if (ADMIN_EMAIL && ADMIN_USERNAME && ADMIN_PASSWORD) {
-      const existingAdmin = await User.findOne({ where: { email: ADMIN_EMAIL } });
+      // Vérifier si un utilisateur existe déjà avec le même email ou le même username
+      const existingAdmin = await User.findOne({
+        where: {
+          [Op.or]: [{ email: ADMIN_EMAIL }, { username: ADMIN_USERNAME }],
+        },
+      });
       if (!existingAdmin) {
         await User.create({
           username: ADMIN_USERNAME,
