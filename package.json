@@ -2,6 +2,11 @@
   "name": "ourmusic-backend",
   "module": "index.js",
   "type": "module",
+  "scripts": {
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:seed": "sequelize-cli db:seed:all",
+    "start": "bun src/server.js"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "sequelize-cli": "^6.6.2"
