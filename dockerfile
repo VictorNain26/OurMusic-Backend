@@ -13,25 +13,13 @@ ENV PATH="/root/.bun/bin:$PATH"
 RUN pip3 install pipx && pipx install spotdl yt-dlp
 ENV PATH="/root/.local/bin:$PATH"
 
-# Installation officielle de PNPM sans npm
-RUN curl -fsSL https://get.pnpm.io/install.sh | SHELL=bash bash -
-ENV PNPM_HOME="/root/.local/share/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-ENV PATH="$PNPM_HOME/global-bin:$PATH"
-
-RUN pnpm config set global-bin-dir $PNPM_HOME/global-bin
-
-# Installation de sequelize-cli globalement via pnpm
-RUN pnpm add -g sequelize-cli
-
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json ./
 
-# Installation des dépendances avec PNPM en forçant une structure plate
-RUN pnpm install --frozen-lockfile --shamefully-hoist
+# Installation des dépendances avec Bun
+RUN bun install
 
 COPY . .
-COPY .env .env
 
 EXPOSE 3000
 
