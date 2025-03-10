@@ -92,6 +92,13 @@ Bun.serve({
     const url = new URL(req.url);
     const routeKey = `${req.method}:${url.pathname}`;
 
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders,
+      });
+    }
+
     // Handlers d'authentification
     const authHandlers = {
       async register(req, corsHeaders) {
@@ -114,7 +121,7 @@ Bun.serve({
           return Response.json({ error: "Identifiants invalides" }, { status: 401, headers: corsHeaders });
         }
         const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
-        const cookie = `token=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=3600`;
+        const cookie = `token=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=3600`;
         return new Response(JSON.stringify({ message: "Connexion réussie" }), {
           status: 200,
           headers: { ...corsHeaders, "Set-Cookie": cookie, "Content-Type": "application/json" }
@@ -127,7 +134,18 @@ Bun.serve({
           return Response.json({ error: "Non authentifié" }, { status: 401, headers: corsHeaders });
         }
         return Response.json({ id: user.id, email: user.email, username: user.username, role: user.role }, { headers: corsHeaders });
-      }
+      },
+
+      async logout(req, corsHeaders) {
+        return new Response(JSON.stringify({ message: "Déconnexion réussie" }), {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            "Set-Cookie": `token=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`,
+            "Content-Type": "application/json"
+          }
+        });
+      },
     };
 
     // Handlers des endpoints Spotify (réservés aux admins)
@@ -317,6 +335,7 @@ Bun.serve({
       "POST:/api/auth/register": () => authHandlers.register(req, corsHeaders),
       "POST:/api/auth/login": () => authHandlers.login(req, corsHeaders),
       "GET:/api/auth/me": () => authHandlers.me(req, corsHeaders),
+      "POST:/api/auth/logout": () => authHandlers.logout(req, corsHeaders),
       "GET:/api/live/spotify/scrape": () => new Response(createSSEStream((sendEvent) => spotifyHandlers.spotifyScrape(req, sendEvent)), {
         headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" }
       }),

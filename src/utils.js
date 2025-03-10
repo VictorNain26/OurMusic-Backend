@@ -37,11 +37,25 @@ export function delay(ms) {
 }
 
 export function getCorsHeaders(req) {
-  const origin = req.headers.get("Origin") || "https://ourmusic.fr";
+  const allowedOrigins = [
+    "https://ourmusic.fr",
+    "https://ourmusic-api.ovh",
+  ];
+
+  const origin = req.headers.get("Origin");
+
+  let allowOrigin = "";
+  if (origin && allowedOrigins.includes(origin)) {
+    allowOrigin = origin;
+  } else {
+    allowOrigin = "null";
+  }
+
   return {
-    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Credentials": "true",
   };
 }
+
