@@ -13,16 +13,15 @@ ENV PATH="/root/.bun/bin:$PATH"
 RUN pip3 install pipx && pipx install spotdl yt-dlp
 ENV PATH="/root/.local/bin:$PATH"
 
-# Définir le répertoire de travail
+# Définir le répertoire de travail avant de télécharger lightpanda
 WORKDIR /app
 
 # Télécharger lightpanda dans /app et le rendre exécutable
 RUN curl -L -o lightpanda https://github.com/lightpanda-io/browser/releases/download/nightly/lightpanda-x86_64-linux && \
-    chmod a+x ./lightpanda
+    chmod a+x ./lightpanda && \
+    ls -l /app
 
 COPY package.json ./
-
-# Installer les dépendances avec Bun
 RUN bun install
 
 COPY . .
