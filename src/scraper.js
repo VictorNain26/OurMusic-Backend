@@ -1,9 +1,7 @@
-// src/scraper.js
 import puppeteer from 'puppeteer-core';
 import { delay } from './utils.js';
 
 export async function scrapeTracksForGenres(genres, pagesPerGenre, excludedTags) {
-  // Connexion à Lightpanda via Docker (nom du service: lightpanda)
   const browser = await puppeteer.connect({
     browserWSEndpoint: "ws://lightpanda:9222",
   });
@@ -38,11 +36,11 @@ export async function scrapeTracksForGenres(genres, pagesPerGenre, excludedTags)
       }, excludedTags);
       results[genre].push(...tracks);
     }
-    const seenArtists = new Set();
+    const seen = new Set();
     results[genre] = results[genre].filter((track) => {
       const key = track.artist.toLowerCase();
-      if (seenArtists.has(key)) return false;
-      seenArtists.add(key);
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
   }
