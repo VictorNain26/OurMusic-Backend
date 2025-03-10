@@ -29,9 +29,6 @@ export async function scrapeTracksForGenres(genres, pagesPerGenre, excludedTags 
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
 
-  // Désactiver JavaScript : plus de crash de frame
-  await page.setJavaScriptEnabled(false);
-
   const results = {};
 
   for (const genre of genres) {
@@ -45,6 +42,7 @@ export async function scrapeTracksForGenres(genres, pagesPerGenre, excludedTags 
       console.log(`  📄 Scraping page ${pageNum}/${pagesPerGenre}: ${url}`);
 
       try {
+        // Ne pas attendre que tous les scripts soient chargés → éviter les crashs
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 10000 });
 
         const hasTracks = await page.$('h3.track_name');
@@ -66,11 +64,12 @@ export async function scrapeTracksForGenres(genres, pagesPerGenre, excludedTags 
         console.log(`  ✅ ${newTracks.length} nouveaux tracks ajoutés`);
         results[genre].push(...newTracks);
 
-        // Anti-spam / anti-ban (au besoin tu peux désactiver)
+        // Petit delay pour éviter les bans éventuels
         await delay(1000);
 
       } catch (err) {
         console.error(`  ❌ Erreur scraping ${url} : ${err.message}`);
+        // Optionnel : re-tenter si c’est un problème de frame détaché
       }
     }
 
