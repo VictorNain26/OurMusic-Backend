@@ -1,7 +1,9 @@
 import axios from 'axios';
-import cheerio from 'cheerio';
+import { parseTracksFromHTML } from './scraper/parser.js';
+import { deduplicateTracks } from './scraper/utils.js';
+import { delay } from './utils.js'; // Ton delay est déjà dans utils.js
 
-export async function scrapeTracksForGenres(genres, pagesPerGenre, excludedTags = []) {
+export async function scrapeTracksForGenres(genres, pagesPerGenre = 1, excludedTags = []) {
   const results = {};
 
   for (const genre of genres) {
@@ -13,23 +15,19 @@ export async function scrapeTracksForGenres(genres, pagesPerGenre, excludedTags 
       console.log(`Scraping ${url}`);
 
       try {
-        const response = await axios.get(url);
-        const $ = cheerio.load(response.data);
+        const response = await axios.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; OurMusicBot/1.0)'
+          },
+          timeout: 10000
+        });
 
-        const tracks = $('h3.track_name').map((_, el) => {
-          const artist = $(el).find('a.artist').text().trim();
-          const title = $(el).find('a.track').text().trim();
-          const tagEls = $(el).closest('.section-player').find('ul.tags a');
-          const tags = tagEls.map((_, t) => $(t).text().trim()).get();
-          const lowerTags = tags.map(t => t.toLowerCase());
-          if (excludedTags.some(tag => lowerTags.includes(tag.toLowerCase()))) return null;
-          const key = `${artist.toLowerCase()}-${title.toLowerCase()}`;
-          if (seen.has(key)) return null;
-          seen.add(key);
-          return { artist, title, tags };
-        }).get().filter(Boolean);
+        const tracks = parseTracksFromHTML(response.data, excludedTags);
+        const uniqueTracks = deduplicateTracks(tracks);
+        results[genre].push(...uniqueTracks);
 
-        results[genre].push(...tracks);
+        await delay(1000);
+
       } catch (err) {
         console.error(`Erreur scraping ${url}: ${err.message}`);
       }
