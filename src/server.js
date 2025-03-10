@@ -197,6 +197,7 @@ Bun.serve({
           user: {
             id: user.id,
             email: user.email,
+            username: user.username,
             role: user.role
           }
         }), {
