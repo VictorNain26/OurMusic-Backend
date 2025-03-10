@@ -15,50 +15,93 @@ import { scrapeTracksForGenres } from "./scraper.js";
 import axios from "axios";
 import path from "path";
 import { ensureDirectoryExists, fileExists, runCommand } from "./utils.js";
-import jwt from "jsonwebtoken";
-import sequelize, { initDatabase, User } from "./db.js";
+import { initDatabase, User } from "./db.js";
 
-// Récupérer la configuration du port depuis l'environnement Bun
-const { PORT, RATE_LIMIT_MS } = Bun.env;
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+
+const { PORT, RATE_LIMIT_MS, JWT_SECRET } = Bun.env;
 const port = Number(PORT) || 3000;
+const ACCESS_EXPIRES = "15m";   // Durée d'un access token
+const REFRESH_EXPIRES = "7d";   // Durée d'un refresh token
 
 await initDatabase();
 
-/** 
- * Vérifie le token présent dans l'en-tête Authorization ou dans le cookie.
+/**
+ * Génère un access token (JWT) à durée de vie courte.
+ * Contient l'id, email, role de l'utilisateur.
  */
-async function verifyToken(req) {
-  let token = req.headers.get("Authorization")?.replace("Bearer ", "");
-  if (!token) {
-    const cookieHeader = req.headers.get("Cookie");
-    if (cookieHeader) {
-      const tokenMatch = cookieHeader.match(/token=([^;]+)/);
-      token = tokenMatch ? tokenMatch[1] : null;
-    }
-  }
-  if (!token) return null;
+function signAccessToken(user) {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    JWT_SECRET,
+    { expiresIn: ACCESS_EXPIRES }
+  );
+}
+
+/**
+ * Génère un refresh token (JWT) à durée de vie plus longue.
+ * On pourrait y mettre un champ "type: refresh" ou "version", etc.
+ */
+function signRefreshToken(user) {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    JWT_SECRET,
+    { expiresIn: REFRESH_EXPIRES }
+  );
+}
+
+/**
+ * Vérifie et décode un access token (à lire depuis le header Authorization).
+ */
+async function verifyAccessToken(req) {
+  // Chercher le header Authorization: Bearer ...
+  let authHeader = req.headers.get("Authorization") || "";
+  if (!authHeader.startsWith("Bearer ")) return null;
+
+  const token = authHeader.replace("Bearer ", "").trim();
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    // Récupérer l'utilisateur
     const user = await User.findByPk(decoded.id);
-    return user;
-  } catch {
+    return user || null;
+  } catch (err) {
     return null;
   }
 }
 
 /**
- * Vérifie que l'utilisateur connecté est administrateur.
+ * Vérifie et décode un refresh token (à lire depuis le cookie 'refresh').
+ */
+async function verifyRefreshToken(req) {
+  const cookieHeader = req.headers.get("Cookie") || "";
+  // Cherche refresh=...
+  const match = cookieHeader.match(/(^|;\s*)refresh=([^;]+)/);
+  if (!match) return null;
+
+  const token = match[2];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findByPk(decoded.id);
+    return user || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Vérifie que l'utilisateur connecté est admin (via access token).
  */
 async function verifyAdmin(req) {
-  const user = await verifyToken(req);
-  if (!user || user.role !== 'admin') {
+  const user = await verifyAccessToken(req);
+  if (!user || user.role !== "admin") {
     throw new Error("Accès refusé: droits administrateur requis.");
   }
   return user;
 }
 
 /**
- * Création d'un stream SSE pour envoyer des événements en temps réel.
+ * SSE helper
  */
 function createSSEStream(handler) {
   return new ReadableStream({
@@ -99,59 +142,123 @@ Bun.serve({
       });
     }
 
-    // Handlers d'authentification
+    // Handlers d’authentification avec Access+Refresh
     const authHandlers = {
+      // 1) Inscription
       async register(req, corsHeaders) {
         const { username, email, password } = await req.json();
         if (!username || !email || !password) {
           return Response.json({ error: "Tous les champs sont requis" }, { status: 400, headers: corsHeaders });
         }
         try {
+          // Vérifie s'il n'y a pas déjà un user
+          const existing = await User.findOne({ where: { email } });
+          if (existing) {
+            return Response.json({ error: "Cet email est déjà utilisé" }, { status: 400, headers: corsHeaders });
+          }
+          // Création
           const newUser = await User.create({ username, email, password });
-          return Response.json({ message: "Utilisateur créé", user: { id: newUser.id, email: newUser.email } }, { status: 201, headers: corsHeaders });
+          return Response.json({
+            message: "Utilisateur créé",
+            user: { id: newUser.id, email: newUser.email, username: newUser.username }
+          }, { status: 201, headers: corsHeaders });
         } catch (error) {
           return Response.json({ error: error.message }, { status: 400, headers: corsHeaders });
         }
       },
 
+      // 2) Login : renvoie accessToken + setCookie refresh
       async login(req, corsHeaders) {
         const { email, password } = await req.json();
+        // Cherche l'utilisateur
         const user = await User.findOne({ where: { email } });
-        if (!user || !(await user.verifyPassword(password))) {
+        if (!user) {
           return Response.json({ error: "Identifiants invalides" }, { status: 401, headers: corsHeaders });
         }
-        const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
-        const cookie = `token=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=3600`;
-        return new Response(JSON.stringify({ message: "Connexion réussie", cookie: cookie }), {
+        // Vérifie le mot de passe
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+          return Response.json({ error: "Identifiants invalides" }, { status: 401, headers: corsHeaders });
+        }
+        // Génère Access & Refresh
+        const accessToken = signAccessToken(user);
+        const refreshToken = signRefreshToken(user);
+
+        // Place le refresh token dans un cookie HttpOnly
+        // Secure + SameSite=None => OK pour HTTPS cross-site
+        // On donne 7 jours en secondes => 7 * 24 * 3600 = 604800
+        const refreshCookie = `refresh=${refreshToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=604800`;
+
+        // Retourne l'access token dans le body
+        // (Le front le stockera en mémoire ou localStorage)
+        return new Response(JSON.stringify({
+          message: "Connexion réussie",
+          accessToken, // le front utilisera ce token
+          user: {
+            id: user.id,
+            email: user.email,
+            role: user.role
+          }
+        }), {
           status: 200,
-          headers: { ...corsHeaders, "Set-Cookie": cookie, "Content-Type": "application/json" }
+          headers: {
+            ...corsHeaders,
+            "Set-Cookie": refreshCookie,
+            "Content-Type": "application/json"
+          }
         });
       },
 
+      // 3) /api/auth/refresh : lit le cookie "refresh" et renvoie un nouvel access token
+      async refresh(req, corsHeaders) {
+        const user = await verifyRefreshToken(req);
+        if (!user) {
+          return Response.json({ error: "Refresh token invalide" }, { status: 401, headers: corsHeaders });
+        }
+        // OK => renvoyer un nouvel Access Token
+        const newAccess = signAccessToken(user);
+
+        // Optionnel : on peut régénérer un nouveau refresh token (rotation)
+        // const newRefresh = signRefreshToken(user);
+        // const refreshCookie = `refresh=${newRefresh}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=604800`;
+        // let extraHeaders = { "Set-Cookie": refreshCookie, ...corsHeaders };
+
+        return Response.json({ accessToken: newAccess }, { status: 200, headers: corsHeaders });
+      },
+
+      // 4) /api/auth/me : lit l'access token (header Authorization)
       async me(req, corsHeaders) {
-        const user = await verifyToken(req);
+        const user = await verifyAccessToken(req);
         if (!user) {
           return Response.json({ error: "Non authentifié" }, { status: 401, headers: corsHeaders });
         }
-        return Response.json({ id: user.id, email: user.email, username: user.username, role: user.role }, { headers: corsHeaders });
+        return Response.json({
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          role: user.role
+        }, { headers: corsHeaders });
       },
 
+      // 5) /api/auth/logout : efface le cookie refresh
       async logout(req, corsHeaders) {
+        // On efface le cookie => Max-Age=0
+        const refreshCookie = `refresh=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`;
         return new Response(JSON.stringify({ message: "Déconnexion réussie" }), {
           status: 200,
           headers: {
             ...corsHeaders,
-            "Set-Cookie": `token=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`,
+            "Set-Cookie": refreshCookie,
             "Content-Type": "application/json"
           }
         });
       },
     };
 
-    // Handlers des endpoints Spotify (réservés aux admins)
+    // Handlers Spotify (inchangés, sauf qu'on utilise verifyAdmin() => access token)
     const spotifyHandlers = {
       async spotifyScrape(req, sendEvent) {
-        await verifyAdmin(req);
+        await verifyAdmin(req); // => lit un access token "Bearer" + vérifie role=admin
         const genres = ["indie+rock", "pop", "rock", "electronica", "hip+hop"];
         const pagesPerGenre = 1;
         const excludedTags = ["trance", "metal", "dubstep", "death+metal", "acid"];
@@ -168,6 +275,7 @@ Bun.serve({
           return;
         }
 
+        // (logique inchangée)
         for (const genre of genres) {
           const tracks = scrapedData[genre];
           console.log(`Genre "${genre}" - ${tracks.length} morceaux scrappés.`);
@@ -246,7 +354,7 @@ Bun.serve({
       },
 
       async spotifySync(req, sendEvent) {
-        await verifyAdmin(req);
+        await verifyAdmin(req); // => admin check
         sendEvent({ message: "Début de la synchronisation" });
         await createCookieFile(sendEvent);
         await ensureDirectoryExists("/root/.spotdl/temp");
@@ -289,7 +397,7 @@ Bun.serve({
       },
 
       async spotifySyncIndividual(req, sendEvent, playlistId) {
-        await verifyAdmin(req);
+        await verifyAdmin(req); // => admin check
         sendEvent({ message: `Début de la synchronisation pour la playlist ${playlistId}` });
         await createCookieFile(sendEvent);
         await ensureDirectoryExists("/root/.spotdl/temp");
@@ -330,10 +438,11 @@ Bun.serve({
       }
     };
 
-    // Définition des routes locales
+    // Mapping des routes (incluant notre nouveau "/api/auth/refresh")
     const localRouteMap = {
       "POST:/api/auth/register": () => authHandlers.register(req, corsHeaders),
       "POST:/api/auth/login": () => authHandlers.login(req, corsHeaders),
+      "POST:/api/auth/refresh": () => authHandlers.refresh(req, corsHeaders),
       "GET:/api/auth/me": () => authHandlers.me(req, corsHeaders),
       "POST:/api/auth/logout": () => authHandlers.logout(req, corsHeaders),
       "GET:/api/live/spotify/scrape": () => new Response(createSSEStream((sendEvent) => spotifyHandlers.spotifyScrape(req, sendEvent)), {
@@ -344,6 +453,7 @@ Bun.serve({
       }),
     };
 
+    // Routage
     if (localRouteMap[routeKey]) {
       return await localRouteMap[routeKey]();
     } else if (url.pathname.startsWith("/api/live/spotify/sync/")) {
@@ -352,6 +462,7 @@ Bun.serve({
         headers: { ...corsHeaders, "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" }
       });
     }
+
     return new Response("Not found", { status: 404, headers: corsHeaders });
   },
 });
