@@ -122,7 +122,7 @@ Bun.serve({
         }
         const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
         const cookie = `token=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=3600`;
-        return new Response(JSON.stringify({ message: "Connexion réussie" }), {
+        return new Response(JSON.stringify({ message: "Connexion réussie", cookie: cookie }), {
           status: 200,
           headers: { ...corsHeaders, "Set-Cookie": cookie, "Content-Type": "application/json" }
         });
