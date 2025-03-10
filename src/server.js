@@ -1,5 +1,4 @@
 // src/server.js
-
 import { getCorsHeaders, delay } from "./utils.js";
 import { 
   getSpotifyAccessToken,
@@ -235,7 +234,9 @@ Bun.serve({
     const spotifyHandlers = {
       // SSE : /scrape
       async spotifyScrape(req, sendEvent) {
+        console.log("Début du handler /scrape");
         await verifyAdmin(req);
+        console.log("Utilisateur admin ok, début du scraping...");
 
         const genres = ["indie+rock", "pop", "rock", "electronica", "hip+hop"];
         const pagesPerGenre = 1;
@@ -261,6 +262,7 @@ Bun.serve({
           await delay(5000);
         }
         sendEvent({ message: "Mise à jour Spotify via scraping terminée." });
+        console.log("Fin du handler /scrape, on va se fermer...");
       },
 
       // SSE : /sync (global)
