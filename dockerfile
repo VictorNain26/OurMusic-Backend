@@ -13,15 +13,10 @@ ENV PATH="/root/.bun/bin:$PATH"
 RUN pip3 install pipx && pipx install spotdl yt-dlp
 ENV PATH="/root/.local/bin:$PATH"
 
-# Définir le répertoire de travail avant de télécharger lightpanda
 WORKDIR /app
-
-# Télécharger lightpanda dans /app et le rendre exécutable
-RUN curl -L -o lightpanda https://github.com/lightpanda-io/browser/releases/download/nightly/lightpanda-x86_64-linux && \
-    chmod a+x ./lightpanda && \
-    ls -l /app
-
 COPY package.json ./
+
+# Installation des dépendances avec Bun
 RUN bun install
 
 COPY . .
@@ -32,5 +27,4 @@ EXPOSE 3000
 CMD ["bash", "-c", "\
   until pg_isready -h db -p 5432; do echo 'Waiting for DB...'; sleep 3; done && \
   bun run db:migrate && \
-  ./lightpanda serve --host 0.0.0.0 --port 9222 & \
   bun start"]
