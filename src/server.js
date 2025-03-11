@@ -141,14 +141,36 @@ Bun.serve({
     const corsHeaders = getCorsHeaders(req);
     const url = new URL(req.url);
     const routeKey = `${req.method}:${url.pathname}`;
-
+    
     if (req.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
         headers: corsHeaders,
       });
     }
-
+    // Ici, on intercepte les requêtes DELETE sur /api/track/like/...
+    if (req.method === "DELETE" && url.pathname.startsWith("/api/track/like/")) {
+      const id = url.pathname.split("/").pop();
+      console.log("Suppression du like pour l'ID :", id); // Pour débogage
+  
+      const user = await verifyAccessToken(req);
+      if (!user) {
+        return Response.json({ error: "Non authentifié" }, { status: 401, headers: corsHeaders });
+      }
+  
+      const track = await LikedTrack.findOne({ where: { id, UserId: user.id } });
+      if (!track) {
+        return Response.json({ error: "Morceau non trouvé" }, { status: 404, headers: corsHeaders });
+      }
+  
+      try {
+        await track.destroy();
+        return Response.json({ message: "Morceau retiré des likes" }, { status: 200, headers: corsHeaders });
+      } catch (err) {
+        return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+      }
+    }
+    
     // Handlers d'authentification (Access + Refresh)
     const authHandlers = {
       // 1) Inscription
@@ -194,6 +216,7 @@ Bun.serve({
           user: {
             id: user.id,
             email: user.email,
+            username: user.username,
             role: user.role
           }
         }), {
@@ -451,28 +474,6 @@ Bun.serve({
       }
     };
 
-    // Ici, on intercepte les requêtes DELETE sur /api/track/like/...
-    if (req.method === "DELETE" && url.pathname.startsWith("/api/track/like/")) {
-      const id = url.pathname.split("/").pop();
-      console.log("Suppression du like pour l'ID :", id); // Pour débogage
-
-      const user = await verifyAccessToken(req);
-      if (!user) {
-        return Response.json({ error: "Non authentifié" }, { status: 401, headers: corsHeaders });
-      }
-
-      const track = await LikedTrack.findOne({ where: { id, UserId: user.id } });
-      if (!track) {
-        return Response.json({ error: "Morceau non trouvé" }, { status: 404, headers: corsHeaders });
-      }
-
-      try {
-        await track.destroy();
-        return Response.json({ message: "Morceau retiré des likes" }, { status: 200, headers: corsHeaders });
-      } catch (err) {
-        return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
-      }
-    }
 
     // Mapping des routes
     const localRouteMap = {
