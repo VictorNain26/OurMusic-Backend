@@ -485,14 +485,10 @@ Bun.serve({
       },
 
       "DELETE:/api/track/like": async () => {
+        const id = url.pathname.split("/").pop();
         const user = await verifyAccessToken(req);
         if (!user) {
           return Response.json({ error: "Non authentifié" }, { status: 401, headers: corsHeaders });
-        }
-
-        const { id } = await req.json();
-        if (!id) {
-          return Response.json({ error: "L'ID du morceau est requis pour retirer le like" }, { status: 400, headers: corsHeaders });
         }
 
         const track = await LikedTrack.findOne({ where: { id, UserId: user.id } });
