@@ -16,7 +16,7 @@ import { scrapeTracksForGenres } from "./scraper.js";
 import axios from "axios";
 import path from "path";
 import { ensureDirectoryExists, fileExists, runCommand } from "./utils.js";
-import { initDatabase, User } from "./db.js";
+import { initDatabase, User, LikedTrack } from "./db.js";
 
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -249,7 +249,7 @@ Bun.serve({
       // 1) /api/live/spotify/scrape
       async spotifyScrape(req, sendEvent) {
         console.log("Début du handler /scrape");
-        // await verifyAdmin(req);
+        await verifyAdmin(req);
         console.log("Utilisateur admin ok, début du scraping...");
 
         try {
@@ -260,7 +260,6 @@ Bun.serve({
           // Lancement du scraping
           console.log("Appel de scrapeTracksForGenres...");
           const scrapedData = await scrapeTracksForGenres(genres, pagesPerGenre, excludedTags);
-          console.log("Données scrappées :", JSON.stringify(scrapedData, null, 2));
 
           // Récupération token Spotify
           const token = await getSpotifyAccessToken();
@@ -459,6 +458,69 @@ Bun.serve({
       "POST:/api/auth/refresh": () => authHandlers.refresh(req, corsHeaders),
       "GET:/api/auth/me": () => authHandlers.me(req, corsHeaders),
       "POST:/api/auth/logout": () => authHandlers.logout(req, corsHeaders),
+
+      "POST:/api/track/like": async () => {
+        const user = await verifyAccessToken(req);
+        if (!user) {
+          return Response.json({ error: "Non authentifié" }, { status: 401, headers: corsHeaders });
+        }
+
+        const { title, artist, artwork, youtubeUrl } = await req.json();
+        if (!title || !artist || !artwork || !youtubeUrl) {
+          return Response.json({ error: "Tous les champs (title, artist, artwork, youtubeUrl) sont requis" }, { status: 400, headers: corsHeaders });
+        }
+
+        // Empêcher les doublons pour un même utilisateur
+        const existing = await LikedTrack.findOne({ where: { UserId: user.id, title, artist } });
+        if (existing) {
+          return Response.json({ error: "Ce morceau est déjà liké" }, { status: 400, headers: corsHeaders });
+        }
+
+        try {
+          const likedTrack = await LikedTrack.create({ title, artist, artwork, youtubeUrl, UserId: user.id });
+          return Response.json({ message: "Morceau liké", likedTrack }, { status: 201, headers: corsHeaders });
+        } catch (err) {
+          return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      },
+
+      "DELETE:/api/track/like": async () => {
+        const user = await verifyAccessToken(req);
+        if (!user) {
+          return Response.json({ error: "Non authentifié" }, { status: 401, headers: corsHeaders });
+        }
+
+        const { id } = await req.json();
+        if (!id) {
+          return Response.json({ error: "L'ID du morceau est requis pour retirer le like" }, { status: 400, headers: corsHeaders });
+        }
+
+        const track = await LikedTrack.findOne({ where: { id, UserId: user.id } });
+        if (!track) {
+          return Response.json({ error: "Morceau non trouvé" }, { status: 404, headers: corsHeaders });
+        }
+
+        try {
+          await track.destroy();
+          return Response.json({ message: "Morceau retiré des likes" }, { status: 200, headers: corsHeaders });
+        } catch (err) {
+          return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      },
+
+      "GET:/api/track/like": async () => {
+        const user = await verifyAccessToken(req);
+        if (!user) {
+          return Response.json({ error: "Non authentifié" }, { status: 401, headers: corsHeaders });
+        }
+
+        try {
+          const likedTracks = await LikedTrack.findAll({ where: { UserId: user.id } });
+          return Response.json({ likedTracks }, { status: 200, headers: corsHeaders });
+        } catch (err) {
+          return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      },
 
       // SSE /api/live/spotify/scrape
       "GET:/api/live/spotify/scrape": () => new Response(

@@ -1,6 +1,7 @@
 // src/db.js
 import { Sequelize, Op } from "sequelize";
 import defineUser from "./models/User.js";
+import defineLikedTrack from "./models/LikedTrack.js"; // Ajout du modèle LikedTrack
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -13,24 +14,27 @@ const sequelize = new Sequelize(
   }
 );
 
-// Initialisation du modèle User
+// Initialisation des modèles
 export const User = defineUser(sequelize);
+export const LikedTrack = defineLikedTrack(sequelize);
+
+// Associations : un utilisateur peut avoir plusieurs morceaux likés
+User.hasMany(LikedTrack, { foreignKey: "UserId", onDelete: "CASCADE" });
+LikedTrack.belongsTo(User, { foreignKey: "UserId" });
+
 export default sequelize;
 
+// La fonction initDatabase reste inchangée
 export async function initDatabase() {
   try {
-    // Vérification de la connexion
     await sequelize.authenticate();
     console.log("🎉 Connexion réussie à la base de données PostgreSQL.");
-
-    // Synchronisation des modèles avec la base de données
     await sequelize.sync();
     console.log("🔄 Les modèles ont été synchronisés avec la base de données.");
-
-    // Création de l'administrateur si les variables d'environnement sont définies
+    
+    // Création de l'administrateur (code existant)...
     const { ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD } = process.env;
     if (ADMIN_EMAIL && ADMIN_USERNAME && ADMIN_PASSWORD) {
-      // Vérifier si un utilisateur existe déjà avec le même email ou le même username
       const existingAdmin = await User.findOne({
         where: {
           [Op.or]: [{ email: ADMIN_EMAIL }, { username: ADMIN_USERNAME }],
