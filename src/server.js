@@ -507,6 +507,20 @@ Bun.serve({
         }
       },
 
+      "GET:/api/track/like": async () => {
+        const user = await verifyAccessToken(req);
+        if (!user) {
+          return Response.json({ error: "Non authentifié" }, { status: 401, headers: corsHeaders });
+        }
+
+        try {
+          const likedTracks = await LikedTrack.findAll({ where: { UserId: user.id } });
+          return Response.json({ likedTracks }, { status: 200, headers: corsHeaders });
+        } catch (err) {
+          return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+        }
+      },
+
       // SSE /api/live/spotify/scrape
       "GET:/api/live/spotify/scrape": () => new Response(
         createSSEStream((sendEvent) => spotifyHandlers.spotifyScrape(req, sendEvent)),
