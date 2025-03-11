@@ -484,7 +484,7 @@ Bun.serve({
         }
       },
 
-      "DELETE:/api/track/like": async () => {
+      "DELETE:/api/track/like/:id": async () => {
         const id = url.pathname.split("/").pop();
         const user = await verifyAccessToken(req);
         if (!user) {
