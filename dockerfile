@@ -22,7 +22,6 @@ RUN pnpm install --force
 
 COPY . .
 
-# ✅ Ne pas mettre `|| true` ici :
 COPY .env .env
 
 RUN npx sequelize-cli db:migrate || echo "❌ Aucune migration à exécuter ou erreur bénigne"

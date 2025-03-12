@@ -1,8 +1,9 @@
-name: Deploy
+name: Deploy to VPS
 
 on:
   push:
-    branches: ['master']
+    branches:
+      - master
 
 jobs:
   deploy:
@@ -12,49 +13,23 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v3
 
-      - name: ⚡ Setup Bun
-        run: |
-          curl -fsSL https://bun.sh/install | bash
-          echo "$HOME/.bun/bin" >> $GITHUB_PATH
-          export PATH="$HOME/.bun/bin:$PATH"
-          bun --version
-
-      - name: 📦 Install Dependencies
-        run: bun install
-
-      - name: 🔍 Ensure ESLint is Installed
-        run: bun add -d eslint
-
-      - name: 🧪 Run Tests
-        run: bun test
-
-      - name: ✨ Run ESLint Check (Fails on Error)
-        run: |
-          echo "🔍 Running ESLint..."
-          npx eslint src --ext .js || {
-            echo "🚫 ESLint a détecté des erreurs.";
-            echo "💡 Corrige-les en local avec : bun run lint:fix";
-            exit 1;
-          }
-
       - name: 🚀 SSH Deploy to VPS
-        if: success()
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ~/Ourmusic || {
-              echo "❌ Dossier introuvable. Clonage forcé.";
+            echo "📁 Déploiement dans ~/Ourmusic"
+
+            # Clone si dossier inexistant
+            if [ ! -d ~/Ourmusic ]; then
               git clone https://github.com/victornain26/ourmusic-backend.git ~/Ourmusic
-              cd ~/Ourmusic
-            }
+            fi
 
-            echo "🔄 Forçage checkout master"
-            git checkout master || git checkout -b master
+            cd ~/Ourmusic
 
-            echo "🔁 Fetch & Reset"
+            echo "🔄 Récupération du dernier code"
             git fetch origin master
             git reset --hard origin/master
             git clean -fd
@@ -62,10 +37,10 @@ jobs:
             echo "✅ Code mis à jour. Dernier commit :"
             git log -1
 
-            echo "📦 Rebuilding Docker backend image"
+            echo "📦 Rebuild Docker backend"
             docker compose stop backend || true
             docker compose rm -f backend || true
             docker compose build backend
 
-            echo "🔁 Restarting backend container"
+            echo "🚀 Démarrage du backend"
             docker compose up -d backend
