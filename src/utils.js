@@ -10,15 +10,6 @@ export async function ensureDirectoryExists(dirPath) {
   }
 }
 
-export async function fileExists(filePath) {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export async function runCommand(cmd, options = {}) {
   const proc = Bun.spawn(cmd, { ...options, stdout: "pipe", stderr: "pipe" });
   await proc.exited;

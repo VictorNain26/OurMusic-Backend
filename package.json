@@ -6,8 +6,9 @@
     "start": "bun src/index.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:seed": "sequelize-cli db:seed:all",
-    "check": "bun check && bun test && eslint src",
-    "lint": "eslint src"
+    "check": "bun check && bun test && bun run lint",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix"
   },
   "devDependencies": {
     "@types/bun": "latest",
