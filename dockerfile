@@ -28,4 +28,5 @@ COPY .env .env
 RUN npx sequelize-cli db:migrate || echo "❌ Aucune migration à exécuter ou erreur bénigne"
 
 EXPOSE 3000
-CMD ["bun", "src/index.js"]
+CMD ["bun", "run", "start"]
+
