@@ -8,5 +8,6 @@ export async function verifyAccessToken(req) {
   const token = authHeader.replace("Bearer ", "").trim();
   const decoded = verifyToken(token);
   if (!decoded) return null;
+
   return await User.findByPk(decoded.id);
 }

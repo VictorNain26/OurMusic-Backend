@@ -21,3 +21,31 @@ export async function likeTrack(req, headers) {
     return errorResponse(err.message, 500, headers);
   }
 }
+
+export async function getLikedTracks(req, headers) {
+  const user = await verifyAccessToken(req);
+  if (!user) return unauthorizedResponse(headers);
+
+  try {
+    const likedTracks = await LikedTrack.findAll({ where: { UserId: user.id } });
+    return jsonResponse({ likedTracks }, 200, headers);
+  } catch (err) {
+    return errorResponse(err.message, 500, headers);
+  }
+}
+
+export async function unlikeTrack(req, headers) {
+  const user = await verifyAccessToken(req);
+  if (!user) return unauthorizedResponse(headers);
+
+  const id = req.url.split("/").pop();
+  const track = await LikedTrack.findOne({ where: { id, UserId: user.id } });
+  if (!track) return errorResponse("Morceau non trouvé", 404, headers);
+
+  try {
+    await track.destroy();
+    return jsonResponse({ message: "Morceau retiré des likes" }, 200, headers);
+  } catch (err) {
+    return errorResponse(err.message, 500, headers);
+  }
+}

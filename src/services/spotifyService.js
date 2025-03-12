@@ -1,5 +1,15 @@
 import { verifyAdmin } from "../middlewares/verifyAdmin.js";
-import { getSpotifyAccessToken, getOurMusicPlaylists, getAllUserPlaylists, createPlaylistDirectory, createSyncFile, syncPlaylistFile, createCookieFile, searchTrackOnSpotify, trimPlaylist } from "../spotify.js";
+import {
+  getSpotifyAccessToken,
+  getOurMusicPlaylists,
+  getAllUserPlaylists,
+  createPlaylistDirectory,
+  createSyncFile,
+  syncPlaylistFile,
+  createCookieFile,
+  searchTrackOnSpotify,
+  trimPlaylist
+} from "../spotify.js";
 import { scrapeTracksForGenres } from "../scraper.js";
 import { delay, ensureDirectoryExists, fileExists, runCommand } from "../utils.js";
 import axios from "axios";
@@ -9,7 +19,6 @@ export async function spotifyScrape(req, sendEvent) {
   await verifyAdmin(req);
   const genres = ["indie+rock", "pop", "rock", "electronica", "hip+hop"];
   const excludedTags = ["trance", "metal", "dubstep", "death+metal", "acid"];
-
   const scrapedData = await scrapeTracksForGenres(genres, 1, excludedTags);
   const token = await getSpotifyAccessToken();
   const userPlaylists = await getAllUserPlaylists(token);
@@ -33,9 +42,11 @@ export async function spotifyScrape(req, sendEvent) {
         description: `Playlist générée pour ${genre}`,
         public: true,
       }, { headers: { Authorization: `Bearer ${token}` } });
-
       playlist = res.data;
       userPlaylists.push(playlist);
+      sendEvent({ message: `Playlist créée : ${playlist.name}` });
+    } else {
+      sendEvent({ message: `Utilisation de la playlist existante : ${playlist.name}` });
     }
 
     const existingUris = (await axios.get(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks?fields=items(track(uri))&limit=100`, { headers: { Authorization: `Bearer ${token}` } })).data.items.map(i => i.track.uri);
@@ -43,6 +54,9 @@ export async function spotifyScrape(req, sendEvent) {
 
     if (newUris.length > 0) {
       await axios.post(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, { uris: newUris }, { headers: { Authorization: `Bearer ${token}` } });
+      sendEvent({ message: `Ajout de ${newUris.length} morceaux à ${playlist.name}` });
+    } else {
+      sendEvent({ message: `Aucun nouveau morceau à ajouter à ${playlist.name}` });
     }
 
     await trimPlaylist(playlist, token, sendEvent);
@@ -53,12 +67,13 @@ export async function spotifyScrape(req, sendEvent) {
 
 export async function spotifySyncAll(req, sendEvent) {
   await verifyAdmin(req);
+  sendEvent({ message: "Début de la synchronisation globale" });
   await createCookieFile(sendEvent);
   await ensureDirectoryExists("/root/.spotdl/temp");
 
   const token = await getSpotifyAccessToken();
   const playlists = await getOurMusicPlaylists(token);
-  if (!playlists.length) return sendEvent({ message: "Aucune playlist 'ourmusic'" });
+  if (!playlists.length) return sendEvent({ message: "Aucune playlist 'ourmusic' trouvée." });
 
   for (const playlist of playlists) {
     await handlePlaylistSync(playlist, token, sendEvent);
@@ -71,6 +86,7 @@ export async function spotifySyncAll(req, sendEvent) {
 
 export async function spotifySyncById(req, sendEvent, playlistId) {
   await verifyAdmin(req);
+  sendEvent({ message: `Synchronisation de la playlist ID ${playlistId}` });
   await createCookieFile(sendEvent);
   await ensureDirectoryExists("/root/.spotdl/temp");
 
@@ -89,10 +105,10 @@ async function handlePlaylistSync(playlist, token, sendEvent) {
   const syncFilePath = path.join(dir, `${safeName}.sync.spotdl`);
 
   if (await fileExists(syncFilePath)) {
-    sendEvent({ message: `Sync existant : ${playlist.name}` });
+    sendEvent({ message: `Fichier de sync existant : ${playlist.name}` });
     await syncPlaylistFile(syncFilePath, dir, sendEvent);
   } else {
-    sendEvent({ message: `Création sync : ${playlist.name}` });
+    sendEvent({ message: `Création du fichier sync : ${playlist.name}` });
     await createSyncFile(playlist, dir, sendEvent);
     await syncPlaylistFile(syncFilePath, dir, sendEvent);
   }

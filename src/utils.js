@@ -1,4 +1,3 @@
-// src/utils.js
 import fs from "fs/promises";
 
 export async function ensureDirectoryExists(dirPath) {
@@ -35,28 +34,3 @@ export async function runCommand(cmd, options = {}) {
 export function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-export function getCorsHeaders(req) {
-  const allowedOrigins = [
-    "https://ourmusic.fr",
-    "https://ourmusic-api.ovh",
-  ];
-
-  const origin = req.headers.get("Origin");
-
-  let allowOrigin = "";
-  if (origin && allowedOrigins.includes(origin)) {
-    allowOrigin = origin;
-  } else {
-    allowOrigin = "null";
-  }
-
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
-  };
-}
-
-
