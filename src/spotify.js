@@ -2,7 +2,7 @@
 import axios from "axios";
 import path from "path";
 import fs from "fs/promises";
-import { runCommand, ensureDirectoryExists, fileExists, delay } from "./utils.js";
+import { runCommand, ensureDirectoryExists } from "./utils.js";
 
 const {
   SPOTIFY_CLIENT_ID,
@@ -11,19 +11,16 @@ const {
   SPOTIFY_REFRESH_TOKEN,
   PLAYLIST_PATH,
   COOKIE_FILE,
-  RATE_LIMIT_MS = "5000",
   FIREFOX_FOLDER = "/app/mozilla/firefox",
   FIREFOX_PROFILE = "jixmpje9.default",
 } = Bun.env;
 
 if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_USER_ID) {
-  throw new Error(
-    "Les variables d'environnement Spotify doivent être définies. Vérifiez SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET et SPOTIFY_USER_ID."
-  );
+  throw new Error("Les variables d'environnement Spotify doivent être définies.");
 }
 
 if (!PLAYLIST_PATH || !COOKIE_FILE) {
-  throw new Error("Les variables d'environnement PLAYLIST_PATH et COOKIE_FILE doivent être définies.");
+  throw new Error("Les variables PLAYLIST_PATH et COOKIE_FILE doivent être définies.");
 }
 
 let cachedToken = null;
@@ -32,43 +29,29 @@ let tokenExpiry = 0;
 export async function getSpotifyAccessToken() {
   const now = Date.now();
   if (cachedToken && now < tokenExpiry) return cachedToken;
-  if (SPOTIFY_REFRESH_TOKEN) {
-    try {
-      const response = await axios.post(
-        "https://accounts.spotify.com/api/token",
-        new URLSearchParams({
-          grant_type: "refresh_token",
-          refresh_token: SPOTIFY_REFRESH_TOKEN,
-          client_id: SPOTIFY_CLIENT_ID,
-          client_secret: SPOTIFY_CLIENT_SECRET,
-        }),
-        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-      );
-      cachedToken = response.data.access_token;
-      tokenExpiry = now + (response.data.expires_in - 60) * 1000;
-      return cachedToken;
-    } catch (error) {
-      console.error("Erreur lors du rafraîchissement du token Spotify:", error.message);
-      throw new Error("Impossible de rafraîchir le token Spotify.");
-    }
-  } else {
-    try {
-      const response = await axios.post(
-        "https://accounts.spotify.com/api/token",
-        new URLSearchParams({
-          grant_type: "client_credentials",
-          client_id: SPOTIFY_CLIENT_ID,
-          client_secret: SPOTIFY_CLIENT_SECRET,
-        }),
-        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-      );
-      cachedToken = response.data.access_token;
-      tokenExpiry = now + (response.data.expires_in - 60) * 1000;
-      return cachedToken;
-    } catch (error) {
-      console.error("Erreur lors de l'obtention du token Spotify:", error.message);
-      throw new Error("Impossible de récupérer un token Spotify.");
-    }
+
+  const data = SPOTIFY_REFRESH_TOKEN
+    ? new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: SPOTIFY_REFRESH_TOKEN,
+        client_id: SPOTIFY_CLIENT_ID,
+        client_secret: SPOTIFY_CLIENT_SECRET,
+      })
+    : new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: SPOTIFY_CLIENT_ID,
+        client_secret: SPOTIFY_CLIENT_SECRET,
+      });
+
+  try {
+    const response = await axios.post("https://accounts.spotify.com/api/token", data, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    cachedToken = response.data.access_token;
+    tokenExpiry = now + (response.data.expires_in - 60) * 1000;
+    return cachedToken;
+  } catch (error) {
+    throw new Error("Erreur récupération token Spotify: " + error.message);
   }
 }
 
