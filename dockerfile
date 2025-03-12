@@ -17,8 +17,11 @@ ENV PATH="/root/.local/bin:$PATH"
 # Création dossier de travail
 WORKDIR /app
 
-# Copie des fichiers nécessaires à l’installation des dépendances
+# Copie du fichier package.json et bun.lockb
 COPY package.json bun.lockb ./
+
+# Suppression du dossier node_modules pour s'assurer que tout est installé correctement
+RUN rm -rf node_modules
 
 # Installation des dépendances Bun
 RUN bun install --frozen-lockfile
