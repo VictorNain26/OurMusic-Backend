@@ -16,7 +16,7 @@ export default sequelize => {
   });
 
   // Méthode pour vérifier le mot de passe
-  User.prototype.verifyPassword = async function (password) {
+  User.prototype.verifyPassword = async function(password) {
     return bcrypt.compare(password, this.password);
   };
 

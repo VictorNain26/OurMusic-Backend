@@ -44,7 +44,7 @@ export async function spotifyScrape(req, sendEvent) {
           description: `Playlist générée pour ${genre}`,
           public: true,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       playlist = res.data;
       userPlaylists.push(playlist);
@@ -56,7 +56,7 @@ export async function spotifyScrape(req, sendEvent) {
     const existingUris = (
       await axios.get(
         `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?fields=items(track(uri))&limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       )
     ).data.items.map(i => i.track.uri);
     const newUris = trackUris.filter(uri => !existingUris.includes(uri));
@@ -65,7 +65,7 @@ export async function spotifyScrape(req, sendEvent) {
       await axios.post(
         `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
         { uris: newUris },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       sendEvent({ message: `Ajout de ${newUris.length} morceaux à ${playlist.name}` });
     } else {

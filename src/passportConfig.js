@@ -12,7 +12,7 @@ passport.use(
   'local',
   new LocalStrategy(
     { usernameField: 'email', passwordField: 'password', session: false },
-    async (email, password, done) => {
+    async(email, password, done) => {
       try {
         const user = await User.findOne({ where: { email } });
         if (!user) {
@@ -26,8 +26,8 @@ passport.use(
       } catch (err) {
         return done(err);
       }
-    }
-  )
+    },
+  ),
 );
 
 passport.use(
@@ -37,7 +37,7 @@ passport.use(
       secretOrKey: JWT_SECRET,
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
     },
-    async (payload, done) => {
+    async(payload, done) => {
       try {
         const user = await User.findByPk(payload.id);
         if (!user) {
@@ -47,8 +47,8 @@ passport.use(
       } catch (err) {
         return done(err, false);
       }
-    }
-  )
+    },
+  ),
 );
 
 export function signJwt(user) {
@@ -59,7 +59,7 @@ export function signJwt(user) {
       role: user.role,
     },
     JWT_SECRET,
-    { expiresIn: '1h' }
+    { expiresIn: '1h' },
   );
 }
 

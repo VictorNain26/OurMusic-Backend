@@ -14,8 +14,8 @@ export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
             'Cache-Control': 'no-cache',
             Connection: 'keep-alive',
           },
-        }
-      )
+        },
+      ),
   )
   .get(
     '/sync',
@@ -28,12 +28,12 @@ export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
             'Cache-Control': 'no-cache',
             Connection: 'keep-alive',
           },
-        }
-      )
+        },
+      ),
   )
   .get(
     '/sync/:id',
-    async ({ params }) =>
+    async({ params }) =>
       new Response(
         createSSEStream(sendEvent => spotifySyncById({}, sendEvent, params.id)),
         {
@@ -42,6 +42,6 @@ export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
             'Cache-Control': 'no-cache',
             Connection: 'keep-alive',
           },
-        }
-      )
+        },
+      ),
   );

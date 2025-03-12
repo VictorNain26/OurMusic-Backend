@@ -2,7 +2,7 @@ export function createSSEStream(handler) {
   return new ReadableStream({
     async start(controller) {
       controller.enqueue(
-        `data: ${JSON.stringify({ connect: { time: Math.floor(Date.now() / 1000) } })}\n\n`
+        `data: ${JSON.stringify({ connect: { time: Math.floor(Date.now() / 1000) } })}\n\n`,
       );
       const heartbeat = setInterval(() => {
         controller.enqueue(`data: ${JSON.stringify({ pub: { heartbeat: Date.now() } })}\n\n`);

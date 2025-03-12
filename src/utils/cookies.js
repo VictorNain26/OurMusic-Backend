@@ -3,5 +3,5 @@ export function createRefreshCookie(token) {
 }
 
 export function clearRefreshCookie() {
-  return `refresh=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0`;
+  return 'refresh=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0';
 }

@@ -37,7 +37,7 @@ export default [
       'keyword-spacing': ['error', { before: true, after: true }],
 
       // ✅ Production safety
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-console': ['warn', { allow: ['warn', 'error', 'log'] }],
       'no-debugger': 'error',
 
       // Optionnel si besoin :
