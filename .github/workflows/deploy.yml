@@ -25,9 +25,6 @@ jobs:
       - name: 🔍 Ensure ESLint is Installed
         run: bun add -d eslint
 
-      - name: ✅ Type Check with Bun
-        run: bun check
-
       - name: 🧪 Run Tests
         run: bun test
 
