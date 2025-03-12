@@ -10,9 +10,9 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:$PATH"
 
-# Installation de pnpm
-RUN curl -fsSL https://get.pnpm.io/v6.16.js | node - add --global pnpm
-ENV PATH="/root/.pnpm-global/bin:$PATH"
+# Installation de pnpm via corepack
+RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
+ENV PATH="/root/.local/share/pnpm:$PATH"
 
 # spotdl + yt-dlp via pipx
 RUN pip3 install pipx && pipx install spotdl yt-dlp
