@@ -26,5 +26,5 @@ EXPOSE 3000
 
 CMD ["bash", "-c", "\
   until pg_isready -h db -p 5432; do echo 'Waiting for DB...'; sleep 3; done && \
-  bun run db:migrate && \
+  bun run migrate.js && \
   bun start"]

@@ -1,55 +1,46 @@
-// migrations/20250306190000-create-likedtracks.cjs
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  up: async ({ context: queryInterface }) => {
     await queryInterface.createTable('LikedTracks', {
       id: {
-        allowNull: false,
-        autoIncrement: true,
+        type: 'INTEGER',
         primaryKey: true,
-        type: Sequelize.INTEGER,
+        autoIncrement: true,
+        allowNull: false,
       },
       title: {
-        type: Sequelize.STRING,
+        type: 'VARCHAR(255)',
         allowNull: false,
       },
       artist: {
-        type: Sequelize.STRING,
+        type: 'VARCHAR(255)',
         allowNull: false,
       },
       artwork: {
-        type: Sequelize.STRING,
+        type: 'VARCHAR(1024)',
         allowNull: false,
       },
       youtubeUrl: {
-        type: Sequelize.STRING,
+        type: 'VARCHAR(1024)',
         allowNull: false,
       },
       UserId: {
-        type: Sequelize.INTEGER,
+        type: 'INTEGER',
         allowNull: false,
-        references: {
-          model: 'Users',
-          key: 'id',
-        },
+        references: { model: 'Users', key: 'id' },
         onDelete: 'CASCADE',
       },
-      createdAt: {
-        allowNull: false,
-        type: Sequelize.DATE,
-      },
-      updatedAt: {
-        allowNull: false,
-        type: Sequelize.DATE,
+      created_at: {
+        type: 'TIMESTAMP',
+        defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
       },
     });
-    // Index composite pour éviter les doublons par utilisateur
-    await queryInterface.addIndex('LikedTracks', ['UserId', 'title', 'artist'], {
-      unique: true,
+    await queryInterface.addConstraint('LikedTracks', {
+      fields: ['UserId', 'title', 'artist'],
+      type: 'unique',
       name: 'unique_user_track',
     });
   },
-
-  async down(queryInterface) {
+  down: async ({ context: queryInterface }) => {
     await queryInterface.dropTable('LikedTracks');
   },
 };

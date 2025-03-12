@@ -1,44 +1,38 @@
-// migrations/20250306184442-create-users.js
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  up: async ({ context: queryInterface }) => {
     await queryInterface.createTable('Users', {
       id: {
-        allowNull: false,
-        autoIncrement: true,
+        type: 'INTEGER',
         primaryKey: true,
-        type: Sequelize.INTEGER,
+        autoIncrement: true,
+        allowNull: false,
       },
       username: {
-        type: Sequelize.STRING,
+        type: 'VARCHAR(255)',
         allowNull: false,
         unique: true,
       },
       email: {
-        type: Sequelize.STRING,
+        type: 'VARCHAR(255)',
         allowNull: false,
         unique: true,
       },
       password: {
-        type: Sequelize.STRING,
+        type: 'VARCHAR(255)',
         allowNull: false,
       },
       role: {
-        type: Sequelize.STRING,
+        type: 'VARCHAR(50)',
         allowNull: false,
         defaultValue: 'user',
       },
-      createdAt: {
-        allowNull: false,
-        type: Sequelize.DATE,
-      },
-      updatedAt: {
-        allowNull: false,
-        type: Sequelize.DATE,
+      created_at: {
+        type: 'TIMESTAMP',
+        defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
       },
     });
   },
-
-  async down(queryInterface) {
+  down: async ({ context: queryInterface }) => {
     await queryInterface.dropTable('Users');
   },
 };
