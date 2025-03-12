@@ -20,27 +20,14 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            echo "📁 Déploiement dans ~/Ourmusic"
+            # Se placer dans le dossier cloné sur ton VPS (assure-toi d'avoir cloné le dépôt une première fois)
+            cd ~/Ourmusic/OurMusic-Backend
 
-            # Clone si dossier inexistant
-            if [ ! -d ~/Ourmusic ]; then
-              git clone https://github.com/victornain26/ourmusic-backend.git ~/Ourmusic
-            fi
+            # Mettre à jour le code depuis la branche master
+            git pull origin master
 
-            cd ~/Ourmusic
+            # Reconstruire l'image Docker "backend" sans cache
+            docker compose build --no-cache backend
 
-            echo "🔄 Récupération du dernier code"
-            git fetch origin master
-            git reset --hard origin/master
-            git clean -fd
-
-            echo "✅ Code mis à jour. Dernier commit :"
-            git log -1
-
-            echo "📦 Rebuild Docker backend"
-            docker compose stop backend || true
-            docker compose rm -f backend || true
-            docker compose build backend
-
-            echo "🚀 Démarrage du backend"
+            # Relancer le container en arrière-plan
             docker compose up -d backend
