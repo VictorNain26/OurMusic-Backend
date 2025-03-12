@@ -20,11 +20,10 @@
     "bcryptjs": "^3.0.2",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.7",
+    "drizzle-kit": "^0.30.5",
+    "drizzle-orm": "^0.40.0",
     "elysia": "^1.2.25",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.13.3",
-    "pg-hstore": "^2.3.4",
-    "sequelize": "^6.37.6",
-    "umzug": "^3.8.2"
+    "pg": "^8.14.0"
   }
 }
