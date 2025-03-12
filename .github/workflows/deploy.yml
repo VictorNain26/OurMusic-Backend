@@ -18,7 +18,7 @@ jobs:
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
       - name: Run Bun install & verify build
-        working-directory: ./backend
+        working-directory: .
         run: |
           bun install
           bun run check || exit 1
