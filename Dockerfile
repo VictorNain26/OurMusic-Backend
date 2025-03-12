@@ -44,5 +44,5 @@ RUN echo "✅ Vérification du code avant build..." \
 EXPOSE 3000
 
 # Lancement de l'application
-CMD ["bun", "run", "./src/index.js"]
+CMD ["bun", "src/index.js"]
 
