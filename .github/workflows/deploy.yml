@@ -12,7 +12,7 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v3
 
-      - name: ⚡ Install Bun
+      - name: ⚡ Setup Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
@@ -22,25 +22,27 @@ jobs:
       - name: 📦 Install Dependencies
         run: bun install
 
-      - name: 🔍 Install ESLint explicitly
+      - name: 🔍 Ensure ESLint is Installed
         run: bun add -d eslint
 
-      - name: ✅ Bun Type Check
+      - name: ✅ Type Check with Bun
         run: bun check
 
-      - name: 🧪 Bun Tests
+      - name: 🧪 Run Tests
         run: bun test
 
       - name: ✨ Run ESLint Check
+        id: eslint
         run: |
+          echo "🔍 Linting the codebase..."
           npx eslint src --ext .js
-        continue-on-error: false
 
-      - name: ❌ Fail Deploy if Lint Fails (and suggest fix)
+      - name: ❌ Block Deploy if Lint Fails (Suggest Fix)
         if: failure()
         run: |
-          echo "🚫 Des erreurs ESLint ont été détectées."
-          echo "💡 Exécute 'bun run lint:fix' en local pour corriger automatiquement les erreurs."
+          echo "🚫 Lint check failed."
+          echo "💡 Corrige les erreurs en local avec :"
+          echo "    bun run lint:fix"
           exit 1
 
       - name: 🚀 SSH Deploy to VPS
