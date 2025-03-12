@@ -1,20 +1,22 @@
 import { Umzug, SequelizeStorage } from 'umzug';
-import sequelize from './src/db.js';
+import sequelize from './db.js';
 
-const umzug = new Umzug({
-  migrations: { glob: 'migrations/*.js' },
-  context: sequelize.getQueryInterface(),
-  storage: new SequelizeStorage({ sequelize }),
-  logger: console,
-});
-
-umzug
-  .up()
-  .then(() => {
-    console.log('✅ Migrations exécutées avec succès');
+const runMigrations = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('✅ Connexion DB OK');
+    const umzug = new Umzug({
+      migrations: { glob: 'migrations/*.js' },
+      context: sequelize.getQueryInterface(),
+      storage: new SequelizeStorage({ sequelize }),
+      logger: console,
+    });
+    await umzug.up();
+    console.log('✅ Migrations terminées');
     process.exit(0);
-  })
-  .catch(err => {
-    console.error('❌ Erreur pendant la migration :', err);
+  } catch (err) {
+    console.error('❌ Erreur migration:', err.message);
     process.exit(1);
-  });
+  }
+};
+runMigrations();
