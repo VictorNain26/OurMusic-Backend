@@ -1,5 +1,5 @@
-const { Umzug, SequelizeStorage } = require('umzug');
-const sequelize = require('./src/db.js').default;
+import { Umzug, SequelizeStorage } from 'umzug';
+import sequelize from './src/db.js';
 
 const umzug = new Umzug({
   migrations: { glob: 'migrations/*.js' },

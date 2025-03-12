@@ -1,3 +1,6 @@
+import { Umzug, SequelizeStorage } from 'umzug';
+import sequelize from './src/db.js';
+
 const status = new Umzug({
   migrations: { glob: 'migrations/*.js' },
   context: sequelize.getQueryInterface(),

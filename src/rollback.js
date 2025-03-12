@@ -1,3 +1,6 @@
+import { Umzug, SequelizeStorage } from 'umzug';
+import sequelize from './src/db.js';
+
 const rollback = new Umzug({
   migrations: { glob: 'migrations/*.js' },
   context: sequelize.getQueryInterface(),
