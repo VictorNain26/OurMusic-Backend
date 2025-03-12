@@ -45,23 +45,11 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ~/Ourmusic || { echo "❌ Dossier ~/Ourmusic introuvable sur le VPS"; exit 1; }
-
-            echo "🧹 Nettoyage de l'état local du dépôt..."
-            git reset --hard HEAD || { echo "❌ Échec git reset"; exit 1; }
-            git clean -fd || { echo "❌ Échec git clean"; exit 1; }
-
-            echo "📥 Pulling last version from Git"
-            git fetch origin master || { echo "❌ Échec git fetch"; exit 1; }
-            git pull origin master || { echo "❌ Échec git pull. Abandon du déploiement."; exit 1; }
-
-            echo "📌 Dernier commit sur le VPS :"
-            git log -1
-
+            cd ~/Ourmusic
+            git pull origin master
             echo "📦 Rebuilding Docker backend image"
             docker compose stop backend || true
             docker compose rm -f backend || true
             docker compose build backend
-
             echo "🔁 Restarting backend container"
             docker compose up -d backend
