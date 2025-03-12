@@ -25,10 +25,11 @@ COPY .env .env
 EXPOSE 3000
 
 CMD bash -c "\
-  echo '📡 Attente de la base de données...' && \
-  until pg_isready -h \"$DB_HOST\" -p 5432; do echo '⏳ En attente de PostgreSQL...'; sleep 3; done && \
-  echo '📂 Lancement des migrations...' && \
+  echo \"📡 Attente de la base de données...\" && \
+  until pg_isready -h \"$DB_HOST\" -p 5432; do echo \"⏳ En attente de PostgreSQL...\"; sleep 3; done && \
+  echo \"📂 Lancement des migrations...\" && \
   bun run db:migrate && \
-  echo '🚀 Démarrage de l\'application...' && \
+  echo \"🚀 Démarrage de l'application...\" && \
   bun run start"
+
 
