@@ -7,22 +7,29 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v3
 
-      - name: Install Bun
+      - name: ⚡ Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
-      - name: Lint & Test backend (CI-safe)
-        run: |
-          bun check
-          bun test
-          eslint src
+      - name: 📦 Install ESLint
+        run: bun add -d eslint
 
-      - name: SSH into server and deploy
+      - name: ✅ Bun Type Check
+        run: bun check
+
+      - name: 🧪 Bun Tests
+        run: bun test
+
+      - name: 🔍 Run ESLint
+        run: npx eslint src
+
+      - name: 🚀 SSH Deploy to VPS
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -31,11 +38,9 @@ jobs:
           script: |
             cd ~/Ourmusic
             git pull origin master
-
-            echo "📦 Rebuild backend (fresh deps)"
+            echo "📦 Rebuilding Docker backend image"
             docker compose stop backend
             docker compose rm -f backend
             docker compose build backend
-
-            echo "🚀 Restart backend container"
+            echo "🔁 Restarting backend container"
             docker compose up -d backend
