@@ -18,20 +18,15 @@ ENV PATH="/root/.pnpm-global/bin:$PATH"
 RUN pip3 install pipx && pipx install spotdl yt-dlp
 ENV PATH="/root/.local/bin:$PATH"
 
-# Création dossier de travail
+# Dossier de travail
 WORKDIR /app
 
-# Copie du fichier package.json et pnpm-lock.yaml
+# Copie fichiers de base
 COPY package.json pnpm-lock.yaml ./
-
-# Suppression du dossier node_modules pour s'assurer que tout est installé correctement
 RUN rm -rf node_modules
 
-# Installer les dépendances avec pnpm
+# Installation des dépendances
 RUN pnpm install --frozen-lockfile
-
-# Installer sequelize-cli globalement avec pnpm
-RUN pnpm add -g sequelize-cli
 
 # Copie du code source
 COPY . .
@@ -39,11 +34,11 @@ COPY . .
 # Ajout du .env si présent (ou injecté à l'exécution via volume/env var)
 COPY .env .env
 
-# Exposition du port applicatif
+# Exposition du port
 EXPOSE 3000
 
-# Commande de démarrage avec attente de PostgreSQL + migration + lancement backend
+# Lancement : attente DB → migration via npx → lancement backend
 CMD ["bash", "-c", "\
   until pg_isready -h db -p 5432; do echo 'Waiting for DB...'; sleep 3; done && \
-  sequelize-cli db:migrate && \
+  bunx sequelize-cli db:migrate && \
   bun src/index.js"]
