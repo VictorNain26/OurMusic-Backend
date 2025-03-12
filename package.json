@@ -7,8 +7,8 @@
     "db:migrate": "sequelize-cli db:migrate",
     "db:seed": "sequelize-cli db:seed:all",
     "check": "bun check && bun test && bun run lint",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix"
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix"
   },
   "devDependencies": {
     "@types/bun": "latest",
