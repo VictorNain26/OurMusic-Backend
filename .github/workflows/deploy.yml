@@ -31,10 +31,20 @@ jobs:
       - name: 🧪 Bun Tests
         run: bun test
 
-      - name: ✨ Lint Code with ESLint
-        run: npx eslint src || exit 1
+      - name: ✨ Run ESLint Check
+        run: |
+          npx eslint src --ext .js
+        continue-on-error: false
+
+      - name: ❌ Fail Deploy if Lint Fails (and suggest fix)
+        if: failure()
+        run: |
+          echo "🚫 Des erreurs ESLint ont été détectées."
+          echo "💡 Exécute 'bun run lint:fix' en local pour corriger automatiquement les erreurs."
+          exit 1
 
       - name: 🚀 SSH Deploy to VPS
+        if: success()
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.SERVER_HOST }}
