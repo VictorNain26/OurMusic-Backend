@@ -27,11 +27,11 @@ COPY package.json pnpm-lock.yaml ./
 # Suppression du dossier node_modules pour s'assurer que tout est installé correctement
 RUN rm -rf node_modules
 
-# Installation des dépendances avec pnpm
+# Installer les dépendances avec pnpm
 RUN pnpm install --frozen-lockfile
 
-# Installer sequelize-cli avec pnpm
-RUN pnpm add -D sequelize-cli
+# Installer sequelize-cli globalement avec pnpm
+RUN pnpm add -g sequelize-cli
 
 # Copie du code source
 COPY . .
@@ -45,5 +45,5 @@ EXPOSE 3000
 # Commande de démarrage avec attente de PostgreSQL + migration + lancement backend
 CMD ["bash", "-c", "\
   until pg_isready -h db -p 5432; do echo 'Waiting for DB...'; sleep 3; done && \
-  pnpm sequelize-cli db:migrate && \
+  sequelize-cli db:migrate && \
   bun src/index.js"]
