@@ -32,16 +32,16 @@ export async function getSpotifyAccessToken() {
 
   const data = SPOTIFY_REFRESH_TOKEN
     ? new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: SPOTIFY_REFRESH_TOKEN,
-      client_id: SPOTIFY_CLIENT_ID,
-      client_secret: SPOTIFY_CLIENT_SECRET,
-    })
+        grant_type: 'refresh_token',
+        refresh_token: SPOTIFY_REFRESH_TOKEN,
+        client_id: SPOTIFY_CLIENT_ID,
+        client_secret: SPOTIFY_CLIENT_SECRET,
+      })
     : new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: SPOTIFY_CLIENT_ID,
-      client_secret: SPOTIFY_CLIENT_SECRET,
-    });
+        grant_type: 'client_credentials',
+        client_id: SPOTIFY_CLIENT_ID,
+        client_secret: SPOTIFY_CLIENT_SECRET,
+      });
 
   try {
     const response = await axios.post('https://accounts.spotify.com/api/token', data, {
@@ -59,7 +59,7 @@ export async function getOurMusicPlaylists(token) {
   try {
     const response = await axios.get(
       `https://api.spotify.com/v1/users/${SPOTIFY_USER_ID}/playlists`,
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Authorization: `Bearer ${token}` } }
     );
     if (!response.data.items) throw new Error('Structure inattendue des données de Spotify.');
     return response.data.items.filter(playlist => playlist.name.toLowerCase().includes('ourmusic'));

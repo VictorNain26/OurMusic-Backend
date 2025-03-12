@@ -11,7 +11,7 @@ export async function likeTrack(req, headers) {
     return errorResponse(
       'Tous les champs (title, artist, artwork, youtubeUrl) sont requis',
       400,
-      headers,
+      headers
     );
   }
 

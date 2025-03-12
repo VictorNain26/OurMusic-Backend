@@ -48,13 +48,13 @@ export async function initDatabase() {
       }
     } else {
       console.log(
-        "⚠️ Variables d'environnement pour l'administrateur non définies. Aucun admin créé.",
+        "⚠️ Variables d'environnement pour l'administrateur non définies. Aucun admin créé."
       );
     }
   } catch (error) {
     console.error(
       '❌ Erreur lors de la connexion ou de la synchronisation à la base de données:',
-      error,
+      error
     );
   }
 }

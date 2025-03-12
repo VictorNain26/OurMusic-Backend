@@ -33,7 +33,7 @@ export default sequelize => {
           fields: ['UserId', 'title', 'artist'],
         },
       ],
-    },
+    }
   );
   return LikedTrack;
 };

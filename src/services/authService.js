@@ -19,7 +19,7 @@ export async function register(req, headers) {
         user: { id: newUser.id, email: newUser.email, username: newUser.username },
       },
       201,
-      headers,
+      headers
     );
   } catch (err) {
     return errorResponse(err.message, 500, headers);
@@ -50,7 +50,7 @@ export async function login(req, headers) {
         'Set-Cookie': refreshCookie,
         'Content-Type': 'application/json',
       },
-    },
+    }
   );
 }
 
@@ -88,7 +88,7 @@ export async function me(req, headers) {
       role: user.role,
     },
     200,
-    headers,
+    headers
   );
 }
 
