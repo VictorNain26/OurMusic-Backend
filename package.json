@@ -17,6 +17,7 @@
     "bcryptjs": "^3.0.2",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.7",
+    "elysia": "^1.2.25",
     "jsonwebtoken": "^9.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
