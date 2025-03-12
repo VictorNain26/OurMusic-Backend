@@ -5,10 +5,13 @@
   "scripts": {
     "start": "bun src/index.js",
     "db:migrate": "sequelize-cli db:migrate",
-    "db:seed": "sequelize-cli db:seed:all"
+    "db:seed": "sequelize-cli db:seed:all",
+    "check": "bun check && bun test && bun run lint",
+    "lint": "eslint src/**/*.js"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "eslint": "^9.22.0",
     "sequelize-cli": "^6.6.2"
   },
   "dependencies": {
