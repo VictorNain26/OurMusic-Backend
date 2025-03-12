@@ -16,8 +16,13 @@ jobs:
         run: |
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun --version
 
-      - name: 📦 Install ESLint
+      - name: 📦 Install Dependencies
+        run: bun install
+
+      - name: 🔍 Install ESLint explicitly
         run: bun add -d eslint
 
       - name: ✅ Bun Type Check
@@ -26,8 +31,8 @@ jobs:
       - name: 🧪 Bun Tests
         run: bun test
 
-      - name: 🔍 Run ESLint
-        run: npx eslint src
+      - name: ✨ Lint Code with ESLint
+        run: npx eslint src || exit 1
 
       - name: 🚀 SSH Deploy to VPS
         uses: appleboy/ssh-action@v0.1.8
@@ -39,8 +44,8 @@ jobs:
             cd ~/Ourmusic
             git pull origin master
             echo "📦 Rebuilding Docker backend image"
-            docker compose stop backend
-            docker compose rm -f backend
+            docker compose stop backend || true
+            docker compose rm -f backend || true
             docker compose build backend
             echo "🔁 Restarting backend container"
             docker compose up -d backend
