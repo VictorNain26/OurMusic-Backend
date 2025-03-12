@@ -1,8 +1,8 @@
-import { verifyToken } from "../utils/jwt.js";
-import { User } from "../db.js";
+import { verifyToken } from '../utils/jwt.js';
+import { User } from '../db.js';
 
 export async function verifyRefreshToken(req) {
-  const cookieHeader = req.headers.get("Cookie") || "";
+  const cookieHeader = req.headers.get('Cookie') || '';
   const match = cookieHeader.match(/(^|;\s*)refresh=([^;]+)/);
   if (!match) return null;
 

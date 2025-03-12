@@ -16,7 +16,7 @@ export async function scrapeTracksForGenres(genres, pagesPerGenre = 1, excludedT
       try {
         const response = await axios.get(url, {
           headers: { 'User-Agent': 'Mozilla/5.0 (compatible; OurMusicBot/1.0)' },
-          timeout: 10000
+          timeout: 10000,
         });
 
         const tracks = parseTracksFromHTML(response.data, excludedTags);

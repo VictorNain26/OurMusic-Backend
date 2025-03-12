@@ -1,4 +1,4 @@
-import { verifyAdmin } from "../middlewares/verifyAdmin.js";
+import { verifyAdmin } from '../middlewares/verifyAdmin.js';
 import {
   getSpotifyAccessToken,
   getOurMusicPlaylists,
@@ -8,17 +8,17 @@ import {
   syncPlaylistFile,
   createCookieFile,
   searchTrackOnSpotify,
-  trimPlaylist
-} from "../spotify.js";
-import { scrapeTracksForGenres } from "../scraper.js";
-import { delay, ensureDirectoryExists, fileExists, runCommand } from "../utils.js";
-import axios from "axios";
-import path from "path";
+  trimPlaylist,
+} from '../spotify.js';
+import { scrapeTracksForGenres } from '../scraper.js';
+import { delay, ensureDirectoryExists, fileExists, runCommand } from '../utils.js';
+import axios from 'axios';
+import path from 'path';
 
 export async function spotifyScrape(req, sendEvent) {
   await verifyAdmin(req);
-  const genres = ["indie+rock", "pop", "rock", "electronica", "hip+hop"];
-  const excludedTags = ["trance", "metal", "dubstep", "death+metal", "acid"];
+  const genres = ['indie+rock', 'pop', 'rock', 'electronica', 'hip+hop'];
+  const excludedTags = ['trance', 'metal', 'dubstep', 'death+metal', 'acid'];
   const scrapedData = await scrapeTracksForGenres(genres, 1, excludedTags);
   const token = await getSpotifyAccessToken();
   const userPlaylists = await getAllUserPlaylists(token);
@@ -37,11 +37,15 @@ export async function spotifyScrape(req, sendEvent) {
     let playlist = userPlaylists.find(p => p.name?.toLowerCase() === name);
 
     if (!playlist) {
-      const res = await axios.post(`https://api.spotify.com/v1/users/${process.env.SPOTIFY_USER_ID}/playlists`, {
-        name: `OurMusic - ${genre}`,
-        description: `Playlist générée pour ${genre}`,
-        public: true,
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(
+        `https://api.spotify.com/v1/users/${process.env.SPOTIFY_USER_ID}/playlists`,
+        {
+          name: `OurMusic - ${genre}`,
+          description: `Playlist générée pour ${genre}`,
+          public: true,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       playlist = res.data;
       userPlaylists.push(playlist);
       sendEvent({ message: `Playlist créée : ${playlist.name}` });
@@ -49,11 +53,20 @@ export async function spotifyScrape(req, sendEvent) {
       sendEvent({ message: `Utilisation de la playlist existante : ${playlist.name}` });
     }
 
-    const existingUris = (await axios.get(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks?fields=items(track(uri))&limit=100`, { headers: { Authorization: `Bearer ${token}` } })).data.items.map(i => i.track.uri);
+    const existingUris = (
+      await axios.get(
+        `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?fields=items(track(uri))&limit=100`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+    ).data.items.map(i => i.track.uri);
     const newUris = trackUris.filter(uri => !existingUris.includes(uri));
 
     if (newUris.length > 0) {
-      await axios.post(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, { uris: newUris }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.post(
+        `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
+        { uris: newUris },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       sendEvent({ message: `Ajout de ${newUris.length} morceaux à ${playlist.name}` });
     } else {
       sendEvent({ message: `Aucun nouveau morceau à ajouter à ${playlist.name}` });
@@ -62,14 +75,14 @@ export async function spotifyScrape(req, sendEvent) {
     await trimPlaylist(playlist, token, sendEvent);
     await delay(2000);
   }
-  sendEvent({ message: "Scraping terminé." });
+  sendEvent({ message: 'Scraping terminé.' });
 }
 
 export async function spotifySyncAll(req, sendEvent) {
   await verifyAdmin(req);
-  sendEvent({ message: "Début de la synchronisation globale" });
+  sendEvent({ message: 'Début de la synchronisation globale' });
   await createCookieFile(sendEvent);
-  await ensureDirectoryExists("/root/.spotdl/temp");
+  await ensureDirectoryExists('/root/.spotdl/temp');
 
   const token = await getSpotifyAccessToken();
   const playlists = await getOurMusicPlaylists(token);
@@ -80,28 +93,28 @@ export async function spotifySyncAll(req, sendEvent) {
     await delay(Number(process.env.RATE_LIMIT_MS) || 5000);
   }
 
-  await runCommand(["chmod", "-R", "777", process.env.PLAYLIST_PATH]);
-  sendEvent({ message: "Synchronisation complète terminée." });
+  await runCommand(['chmod', '-R', '777', process.env.PLAYLIST_PATH]);
+  sendEvent({ message: 'Synchronisation complète terminée.' });
 }
 
 export async function spotifySyncById(req, sendEvent, playlistId) {
   await verifyAdmin(req);
   sendEvent({ message: `Synchronisation de la playlist ID ${playlistId}` });
   await createCookieFile(sendEvent);
-  await ensureDirectoryExists("/root/.spotdl/temp");
+  await ensureDirectoryExists('/root/.spotdl/temp');
 
   const token = await getSpotifyAccessToken();
   const playlist = (await getAllUserPlaylists(token)).find(p => p.id === playlistId);
   if (!playlist) return sendEvent({ error: `Playlist ${playlistId} introuvable.` });
 
   await handlePlaylistSync(playlist, token, sendEvent);
-  await runCommand(["chmod", "-R", "777", process.env.PLAYLIST_PATH]);
+  await runCommand(['chmod', '-R', '777', process.env.PLAYLIST_PATH]);
   sendEvent({ message: `Playlist ${playlist.name} synchronisée.` });
 }
 
 async function handlePlaylistSync(playlist, token, sendEvent) {
   const dir = await createPlaylistDirectory(playlist);
-  const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
+  const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
   const syncFilePath = path.join(dir, `${safeName}.sync.spotdl`);
 
   if (await fileExists(syncFilePath)) {

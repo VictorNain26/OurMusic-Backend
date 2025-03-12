@@ -1,4 +1,4 @@
-import fs from "fs/promises";
+import fs from 'fs/promises';
 
 export async function ensureDirectoryExists(dirPath) {
   try {
@@ -11,10 +11,10 @@ export async function ensureDirectoryExists(dirPath) {
 }
 
 export async function runCommand(cmd, options = {}) {
-  const proc = Bun.spawn(cmd, { ...options, stdout: "pipe", stderr: "pipe" });
+  const proc = Bun.spawn(cmd, { ...options, stdout: 'pipe', stderr: 'pipe' });
   await proc.exited;
-  const stdoutText = proc.stdout ? await new Response(proc.stdout).text() : "";
-  const stderrText = proc.stderr ? await new Response(proc.stderr).text() : "";
+  const stdoutText = proc.stdout ? await new Response(proc.stdout).text() : '';
+  const stderrText = proc.stderr ? await new Response(proc.stderr).text() : '';
   if (stderrText.trim()) {
     console.error(stderrText.trim());
     throw new Error(stderrText.trim());
@@ -23,5 +23,5 @@ export async function runCommand(cmd, options = {}) {
 }
 
 export function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

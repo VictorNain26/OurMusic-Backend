@@ -8,11 +8,13 @@
     "db:seed": "sequelize-cli db:seed:all",
     "check": "find src -name '*.js' | xargs bun check && bun test && bun run lint",
     "lint": "eslint . --ext .js",
-    "lint:fix": "eslint . --ext .js --fix"
+    "lint:fix": "eslint . --ext .js --fix",
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@types/bun": "latest",
     "eslint": "^9.22.0",
+    "prettier": "^3.5.3",
     "sequelize-cli": "^6.6.2"
   },
   "dependencies": {

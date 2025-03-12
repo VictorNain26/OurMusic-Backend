@@ -1,7 +1,7 @@
 // migrations/20250306190000-create-likedtracks.cjs
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("LikedTracks", {
+    await queryInterface.createTable('LikedTracks', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -28,10 +28,10 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: "Users",
-          key: "id",
+          model: 'Users',
+          key: 'id',
         },
-        onDelete: "CASCADE",
+        onDelete: 'CASCADE',
       },
       createdAt: {
         allowNull: false,
@@ -43,13 +43,13 @@ module.exports = {
       },
     });
     // Index composite pour éviter les doublons par utilisateur
-    await queryInterface.addIndex("LikedTracks", ["UserId", "title", "artist"], {
+    await queryInterface.addIndex('LikedTracks', ['UserId', 'title', 'artist'], {
       unique: true,
-      name: "unique_user_track"
+      name: 'unique_user_track',
     });
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable("LikedTracks");
-  }
+    await queryInterface.dropTable('LikedTracks');
+  },
 };

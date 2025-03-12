@@ -8,11 +8,11 @@ await initDatabase();
 
 const app = new Elysia()
   .onRequest(({ set, request }) => {
-    const origin = request.headers.get("Origin") || "*";
-    set.headers["Access-Control-Allow-Origin"] = origin;
-    set.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS";
-    set.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
-    set.headers["Access-Control-Allow-Credentials"] = "true";
+    const origin = request.headers.get('Origin') || '*';
+    set.headers['Access-Control-Allow-Origin'] = origin;
+    set.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,PATCH,DELETE,OPTIONS';
+    set.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
+    set.headers['Access-Control-Allow-Credentials'] = 'true';
   })
   .use(authRoutes)
   .use(trackRoutes)

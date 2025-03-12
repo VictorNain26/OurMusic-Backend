@@ -1,8 +1,8 @@
 // src/spotify.js
-import axios from "axios";
-import path from "path";
-import fs from "fs/promises";
-import { runCommand, ensureDirectoryExists } from "./utils.js";
+import axios from 'axios';
+import path from 'path';
+import fs from 'fs/promises';
+import { runCommand, ensureDirectoryExists } from './utils.js';
 
 const {
   SPOTIFY_CLIENT_ID,
@@ -11,8 +11,8 @@ const {
   SPOTIFY_REFRESH_TOKEN,
   PLAYLIST_PATH,
   COOKIE_FILE,
-  FIREFOX_FOLDER = "/app/mozilla/firefox",
-  FIREFOX_PROFILE = "jixmpje9.default",
+  FIREFOX_FOLDER = '/app/mozilla/firefox',
+  FIREFOX_PROFILE = 'jixmpje9.default',
 } = Bun.env;
 
 if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_USER_ID) {
@@ -20,7 +20,7 @@ if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_USER_ID) {
 }
 
 if (!PLAYLIST_PATH || !COOKIE_FILE) {
-  throw new Error("Les variables PLAYLIST_PATH et COOKIE_FILE doivent être définies.");
+  throw new Error('Les variables PLAYLIST_PATH et COOKIE_FILE doivent être définies.');
 }
 
 let cachedToken = null;
@@ -32,26 +32,26 @@ export async function getSpotifyAccessToken() {
 
   const data = SPOTIFY_REFRESH_TOKEN
     ? new URLSearchParams({
-        grant_type: "refresh_token",
+        grant_type: 'refresh_token',
         refresh_token: SPOTIFY_REFRESH_TOKEN,
         client_id: SPOTIFY_CLIENT_ID,
         client_secret: SPOTIFY_CLIENT_SECRET,
       })
     : new URLSearchParams({
-        grant_type: "client_credentials",
+        grant_type: 'client_credentials',
         client_id: SPOTIFY_CLIENT_ID,
         client_secret: SPOTIFY_CLIENT_SECRET,
       });
 
   try {
-    const response = await axios.post("https://accounts.spotify.com/api/token", data, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    const response = await axios.post('https://accounts.spotify.com/api/token', data, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
     cachedToken = response.data.access_token;
     tokenExpiry = now + (response.data.expires_in - 60) * 1000;
     return cachedToken;
   } catch (error) {
-    throw new Error("Erreur récupération token Spotify: " + error.message);
+    throw new Error('Erreur récupération token Spotify: ' + error.message);
   }
 }
 
@@ -61,16 +61,14 @@ export async function getOurMusicPlaylists(token) {
       `https://api.spotify.com/v1/users/${SPOTIFY_USER_ID}/playlists`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    if (!response.data.items) throw new Error("Structure inattendue des données de Spotify.");
-    return response.data.items.filter((playlist) =>
-      playlist.name.toLowerCase().includes("ourmusic")
-    );
+    if (!response.data.items) throw new Error('Structure inattendue des données de Spotify.');
+    return response.data.items.filter(playlist => playlist.name.toLowerCase().includes('ourmusic'));
   } catch (error) {
     if (error.response && error.response.status === 401) {
-      throw new Error("Token Spotify invalide ou insuffisamment autorisé (scopes manquants).");
+      throw new Error('Token Spotify invalide ou insuffisamment autorisé (scopes manquants).');
     }
-    console.error("Erreur lors de la récupération des playlists Spotify:", error.message);
-    throw new Error("Impossible de récupérer les playlists Spotify.");
+    console.error('Erreur lors de la récupération des playlists Spotify:', error.message);
+    throw new Error('Impossible de récupérer les playlists Spotify.');
   }
 }
 
@@ -86,50 +84,54 @@ export async function getAllUserPlaylists(token) {
 }
 
 export async function createPlaylistDirectory(playlist) {
-  const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
+  const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
   const playlistDirPath = path.join(PLAYLIST_PATH, safeName);
   await ensureDirectoryExists(playlistDirPath);
   return playlistDirPath;
 }
 
 export async function createSyncFile(playlist, playlistDirPath, sendEvent) {
-  const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
+  const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
   const syncFilePath = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
   const cmd = [
-    "spotdl",
-    "sync",
+    'spotdl',
+    'sync',
     playlist.external_urls.spotify,
-    "--save-file",
+    '--save-file',
     syncFilePath,
-    "--output",
+    '--output',
     playlistDirPath,
-    "--cookie-file",
+    '--cookie-file',
     COOKIE_FILE,
   ];
   try {
     const output = await runCommand(cmd);
     sendEvent({ message: `Fichier de synchronisation créé pour '${playlist.name}' : ${output}` });
   } catch (err) {
-    sendEvent({ error: `Erreur lors de la création du fichier de synchronisation pour '${playlist.name}' : ${err.message}` });
+    sendEvent({
+      error: `Erreur lors de la création du fichier de synchronisation pour '${playlist.name}' : ${err.message}`,
+    });
   }
   return syncFilePath;
 }
 
 export async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent) {
   const cmd = [
-    "spotdl",
-    "sync",
+    'spotdl',
+    'sync',
     syncFilePath,
-    "--output",
+    '--output',
     playlistDirPath,
-    "--cookie-file",
+    '--cookie-file',
     COOKIE_FILE,
   ];
   try {
     const output = await runCommand(cmd);
     sendEvent({ message: `Synchronisation réussie pour '${syncFilePath}' : ${output}` });
   } catch (err) {
-    sendEvent({ error: `Erreur lors de la synchronisation du fichier '${syncFilePath}' : ${err.message}` });
+    sendEvent({
+      error: `Erreur lors de la synchronisation du fichier '${syncFilePath}' : ${err.message}`,
+    });
   }
 }
 
@@ -139,24 +141,24 @@ export async function createCookieFile(sendEvent) {
     const fileStats = await fs.stat(COOKIE_FILE);
     const age = Date.now() - fileStats.mtimeMs;
     if (age < cookieAgeLimit) {
-      sendEvent({ message: "Le cookie est récent (< 24h), mise à jour non nécessaire." });
+      sendEvent({ message: 'Le cookie est récent (< 24h), mise à jour non nécessaire.' });
       return;
     }
   } catch (error) {
-    if (error.code !== "ENOENT") {
+    if (error.code !== 'ENOENT') {
       sendEvent({ error: `Erreur lors de la vérification du cookie : ${error.message}` });
       throw error;
     }
   }
   const cookiesFromBrowserArg = `firefox:${FIREFOX_FOLDER}/${FIREFOX_PROFILE}`;
   const cmd = [
-    "yt-dlp",
-    "--cookies-from-browser",
+    'yt-dlp',
+    '--cookies-from-browser',
     cookiesFromBrowserArg,
-    "--cookies",
+    '--cookies',
     COOKIE_FILE,
-    "--skip-download",
-    "https://music.youtube.com/watch?v=dQw4w9WgXcQ",
+    '--skip-download',
+    'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
   ];
   try {
     const output = await runCommand(cmd);
@@ -197,18 +199,22 @@ export async function getAllPlaylistTracks(playlistId, token) {
 export async function trimPlaylist(playlist, token, sendEvent) {
   const tracks = await getAllPlaylistTracks(playlist.id, token);
   if (tracks.length <= 50) {
-    sendEvent({ message: `La playlist "${playlist.name}" contient ${tracks.length} morceaux (pas de suppression nécessaire).` });
+    sendEvent({
+      message: `La playlist "${playlist.name}" contient ${tracks.length} morceaux (pas de suppression nécessaire).`,
+    });
     return;
   }
   const tracksWithIndex = tracks.map((item, index) => ({
     index,
     added_at: item.added_at,
-    uri: item.track.uri
+    uri: item.track.uri,
   }));
   tracksWithIndex.sort((a, b) => new Date(a.added_at) - new Date(b.added_at));
   const numberToRemove = tracks.length - 50;
   const tracksToRemove = tracksWithIndex.slice(0, numberToRemove);
-  sendEvent({ message: `Suppression de ${numberToRemove} morceaux les plus anciens dans la playlist "${playlist.name}".` });
+  sendEvent({
+    message: `Suppression de ${numberToRemove} morceaux les plus anciens dans la playlist "${playlist.name}".`,
+  });
   for (const track of tracksToRemove) {
     try {
       await axios.request({
@@ -216,13 +222,15 @@ export async function trimPlaylist(playlist, token, sendEvent) {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+          'Content-Type': 'application/json',
         },
-        data: { tracks: [{ uri: track.uri, positions: [track.index] }] }
+        data: { tracks: [{ uri: track.uri, positions: [track.index] }] },
       });
       sendEvent({ message: `Supprimé : ${track.uri} (position ${track.index})` });
     } catch (err) {
-      sendEvent({ error: `Erreur lors de la suppression du morceau ${track.uri} : ${err.message}` });
+      sendEvent({
+        error: `Erreur lors de la suppression du morceau ${track.uri} : ${err.message}`,
+      });
     }
   }
 }

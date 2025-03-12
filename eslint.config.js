@@ -15,21 +15,21 @@ export default [
         URLSearchParams: 'readonly',
         setTimeout: 'readonly',
         setInterval: 'readonly',
-        clearInterval: 'readonly'
-      }
+        clearInterval: 'readonly',
+      },
     },
     rules: {
       // ✅ Bonnes pratiques JS modernes
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'no-undef': 'error',
-      'eqeqeq': ['error', 'always'],
+      eqeqeq: ['error', 'always'],
       'prefer-const': 'error',
       'no-var': 'error',
 
       // ✅ Style & lisibilité
-      'quotes': ['error', 'single', { avoidEscape: true }],
-      'semi': ['error', 'always'],
-      'indent': ['error', 2, { SwitchCase: 1 }],
+      quotes: ['error', 'single', { avoidEscape: true }],
+      semi: ['error', 'always'],
+      indent: ['error', 2, { SwitchCase: 1 }],
       'object-curly-spacing': ['error', 'always'],
       'array-bracket-spacing': ['error', 'never'],
       'comma-dangle': ['error', 'always-multiline'],
@@ -43,6 +43,6 @@ export default [
       // Optionnel si besoin :
       // 'no-trailing-spaces': 'error',
       // 'eol-last': ['error', 'always'],
-    }
-  }
+    },
+  },
 ];
