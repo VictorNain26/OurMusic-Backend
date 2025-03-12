@@ -3,9 +3,9 @@
   "module": "index.js",
   "type": "module",
   "scripts": {
+    "start": "bun src/index.js",
     "db:migrate": "sequelize-cli db:migrate",
-    "db:seed": "sequelize-cli db:seed:all",
-    "start": "bun src/server.js"
+    "db:seed": "sequelize-cli db:seed:all"
   },
   "devDependencies": {
     "@types/bun": "latest",
