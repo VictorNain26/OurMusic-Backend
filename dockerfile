@@ -26,7 +26,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN rm -rf node_modules
 
 # Installation des dépendances
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # Copie du code source
 COPY . .
