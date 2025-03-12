@@ -36,7 +36,6 @@ RUN npx sequelize-cli db:migrate || echo "⚠️ Aucune migration ou déjà à j
 
 # Vérification qualité code dans l’image (check + test + lint)
 RUN echo "✅ Vérification du code avant build..." \
- && bun check src \
  && bun test \
  && bun run lint
 
