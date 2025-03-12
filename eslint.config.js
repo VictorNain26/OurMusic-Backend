@@ -19,11 +19,11 @@ export default [
       }
     },
     rules: {
-      'no-unused-vars': 'warn',
+      'no-unused-vars': 'error',
       'no-undef': 'error',
       'no-console': 'off',
-      'semi': ['warn', 'always'],
-      'quotes': ['warn', 'single'],
+      'semi': ['error', 'always'],
+      'quotes': ['error', 'single'],
       'eqeqeq': ['error', 'always']
     }
   }

@@ -28,19 +28,14 @@ jobs:
       - name: 🧪 Run Tests
         run: bun test
 
-      - name: ✨ Run ESLint Check
-        id: eslint
+      - name: ✨ Run ESLint Check (Fails on Error)
         run: |
-          echo "🔍 Linting the codebase..."
-          npx eslint src --ext .js
-
-      - name: ❌ Block Deploy if Lint Fails (Suggest Fix)
-        if: failure()
-        run: |
-          echo "🚫 Lint check failed."
-          echo "💡 Corrige les erreurs en local avec :"
-          echo "    bun run lint:fix"
-          exit 1
+          echo "🔍 Running ESLint..."
+          npx eslint src --ext .js || {
+            echo "🚫 ESLint a détecté des erreurs.";
+            echo "💡 Corrige-les en local avec : bun run lint:fix";
+            exit 1;
+          }
 
       - name: 🚀 SSH Deploy to VPS
         if: success()
