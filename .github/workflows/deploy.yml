@@ -45,11 +45,27 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ~/Ourmusic
-            git pull origin master
+            cd ~/Ourmusic || {
+              echo "❌ Dossier introuvable. Clonage forcé.";
+              git clone https://github.com/victornain26/ourmusic-backend.git ~/Ourmusic
+              cd ~/Ourmusic
+            }
+
+            echo "🔄 Forçage checkout master"
+            git checkout master || git checkout -b master
+
+            echo "🔁 Fetch & Reset"
+            git fetch origin master
+            git reset --hard origin/master
+            git clean -fd
+
+            echo "✅ Code mis à jour. Dernier commit :"
+            git log -1
+
             echo "📦 Rebuilding Docker backend image"
             docker compose stop backend || true
             docker compose rm -f backend || true
             docker compose build backend
+
             echo "🔁 Restarting backend container"
             docker compose up -d backend
