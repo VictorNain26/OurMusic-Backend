@@ -22,7 +22,7 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # Copie des fichiers nécessaires pour installer les deps
-COPY package.json bun.lockb ./
+COPY package.json ./
 
 # Installation des dépendances
 RUN rm -rf node_modules
