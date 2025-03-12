@@ -1,6 +1,7 @@
+// eslint.config.js
 export default [
   {
-    ignores: ['node_modules', 'build', 'bun.lockb'],
+    ignores: ['node_modules', 'bun.lockb', 'build', 'dist'],
     files: ['src/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
@@ -19,7 +20,11 @@ export default [
     },
     rules: {
       'no-unused-vars': 'warn',
-      'no-undef': 'error'
+      'no-undef': 'error',
+      'no-console': 'off',
+      'semi': ['warn', 'always'],
+      'quotes': ['warn', 'single'],
+      'eqeqeq': ['error', 'always']
     }
   }
 ];

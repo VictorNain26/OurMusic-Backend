@@ -6,7 +6,7 @@
     "start": "bun src/index.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:seed": "sequelize-cli db:seed:all",
-    "check": "bun check && bun test && bun run lint",
+    "check": "find src -name '*.js' | xargs bun check && bun test && bun run lint",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix"
   },
