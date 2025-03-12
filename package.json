@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "bun src/index.js",
-    "db:migrate": "bun migrate.js",
+    "db:migrate": "bun src/migrate.js",
     "check": "find src -name '*.js' | xargs bun check && bun test && bun run lint",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
