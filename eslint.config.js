@@ -13,8 +13,8 @@ export default [
         ReadableStream: 'readonly',
         URLSearchParams: 'readonly',
         setTimeout: 'readonly',
-        clearInterval: 'readonly',
-        setInterval: 'readonly'
+        setInterval: 'readonly',
+        clearInterval: 'readonly'
       }
     },
     rules: {
