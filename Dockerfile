@@ -18,9 +18,6 @@ RUN bun install
 
 COPY . .
 
-# ✅ Injection manuelle de DATABASE_URL (sans .env ni dotenv)
-ENV DATABASE_URL=postgresql://devuser:devpass@db:5432/ourmusic
-
 EXPOSE 3000
 
 CMD bash -c "\
