@@ -3,17 +3,31 @@ import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
 export async function verifyAccessToken(req) {
-  if (!req || !req.headers || typeof req.headers.get !== 'function') return null;
-  const authHeader = req.headers.get('Authorization') || '';
+  if (!req || !req.headers) return null;
+
+  const authHeader =
+    (typeof req.headers.get === 'function'
+      ? req.headers.get('Authorization')
+      : req.headers['authorization']) || '';
+
   if (!authHeader.startsWith('Bearer ')) return null;
+
   const token = authHeader.replace('Bearer ', '').trim();
   const decoded = verifyToken(token);
   if (!decoded) return null;
+
+  console.log('[verifyAccessToken] decoded user ID:', decoded.id);
+
   const user = await db
     .select()
     .from(schema.users)
     .where(eq(schema.users.id, decoded.id))
     .then(r => r[0]);
+
+  if (!user) {
+    console.warn('[verifyAccessToken] User not found in DB for ID:', decoded.id);
+  }
+
   return user || null;
 }
 
