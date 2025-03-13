@@ -19,10 +19,10 @@ RUN bun add -g dotenv-cli
 WORKDIR /app
 COPY package.json ./
 
-RUN bun install
-
 COPY . .
 COPY .env .env
+
+RUN bun install
 
 EXPOSE 3000
 
