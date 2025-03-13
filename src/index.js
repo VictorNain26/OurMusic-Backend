@@ -6,7 +6,6 @@ import { spotifyRoutes } from './routes/spotify.routes.js';
 import { createAdminUser } from './services/authService.js';
 
 await initDatabase();
-
 await createAdminUser();
 
 const app = new Elysia()
@@ -17,7 +16,7 @@ const app = new Elysia()
     set.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
     set.headers['Access-Control-Allow-Credentials'] = 'true';
   })
-  .onOptions(() => new Response(null, { status: 204 }))
+  .options('/*', () => new Response(null, { status: 204 }))
   .use(authRoutes)
   .use(trackRoutes)
   .use(spotifyRoutes)
