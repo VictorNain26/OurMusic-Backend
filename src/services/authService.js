@@ -10,19 +10,60 @@ import {
   errorResponse,
   unauthorizedResponse,
 } from '../utils/helpers.js';
-import { eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+
+export async function createAdminUser() {
+  const { ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD } = Bun.env;
+  if (!ADMIN_EMAIL || !ADMIN_USERNAME || !ADMIN_PASSWORD) {
+    console.warn(
+      "Les identifiants administrateur ne sont pas définis dans les variables d'environnement."
+    );
+    return;
+  }
+  const existingAdmin = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.email, ADMIN_EMAIL))
+    .then(r => r[0]);
+
+  if (existingAdmin) {
+    console.log('Utilisateur admin déjà existant.');
+    return;
+  }
+
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, saltRounds);
+
+  await db.insert(schema.users).values({
+    username: ADMIN_USERNAME,
+    email: ADMIN_EMAIL,
+    password: hashedPassword,
+    role: 'admin',
+  });
+  console.log('Utilisateur admin créé avec succès.');
+}
 
 export async function register(req, headers) {
   const { username, email, password } = await req.json();
   if (!username || !email || !password)
     return errorResponse('Champs requis manquants', 400, headers);
+
   const existing = await db
     .select()
     .from(schema.users)
     .where(eq(schema.users.email, email))
     .then(r => r[0]);
+
   if (existing) return errorResponse('Email déjà utilisé', 400, headers);
-  const [user] = await db.insert(schema.users).values({ username, email, password }).returning();
+
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+  const [user] = await db
+    .insert(schema.users)
+    .values({ username, email, password: hashedPassword })
+    .returning();
+
   return jsonResponse({ message: 'Inscription réussie', user }, 201, headers);
 }
 

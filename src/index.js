@@ -3,8 +3,11 @@ import { initDatabase } from './db.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
+import { createAdminUser } from './services/authService.js';
 
 await initDatabase();
+
+await createAdminUser();
 
 const app = new Elysia()
   .onRequest(({ set, request }) => {
