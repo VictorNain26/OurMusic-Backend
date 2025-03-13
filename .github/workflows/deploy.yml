@@ -20,16 +20,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            # Se placer dans le dossier cloné sur ton VPS (assure-toi d'avoir cloné le dépôt une première fois)
             cd ~/Ourmusic/OurMusic-Backend
-
-            # Mettre à jour le code depuis la branche master
             git pull origin master
-
-            # Reconstruire l'image Docker "backend" sans cache
             docker compose build --no-cache backend
-
-            docker image prune -f
-
-            # Relancer le container en arrière-plan
             docker compose up -d backend
+            docker image prune -f
