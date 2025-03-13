@@ -9,14 +9,16 @@ RUN apt-get update && apt-get install -y \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:$PATH"
 
-# Installation de pipx, spotdl et yt-dlp
+# Installation de pipx, spotdl, yt-dlp
 RUN pip3 install pipx && pipx install spotdl yt-dlp
 ENV PATH="/root/.local/bin:$PATH"
+
+# 👇 Installation globale de dotenv-cli
+RUN bun add -g dotenv-cli
 
 WORKDIR /app
 COPY package.json ./
 
-# Installation des dépendances avec Bun
 RUN bun install
 
 COPY . .
@@ -27,9 +29,9 @@ EXPOSE 3000
 CMD bash -c "\
   echo \"📡 Attente de la base de données...\" && \
   until pg_isready -h \"$DB_HOST\" -p 5432; do sleep 3; done && \
-  echo \"📂 Lancement des migrations...\" && \
+  echo \"🛠 Génération des migrations drizzle...\" && \
+  bun run db:generate && \
+  echo \"📂 Lancement des migrations drizzle...\" && \
   bun run db:push && \
   echo \"🚀 Démarrage de l'application...\" && \
   bun run start"
-
-
