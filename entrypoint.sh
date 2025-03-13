@@ -13,7 +13,7 @@ done
 echo -e "${GREEN}✅ Base de données accessible.${NC}"
 
 echo -e "${YELLOW}📂 Exécution des migrations Drizzle ORM...${NC}"
-if bunx drizzle-kit push; then
+if bun run db:push; then
   echo -e "${GREEN}✅ Migrations appliquées avec succès.${NC}"
 else
   echo -e "${RED}❌ Erreur lors de l'application des migrations Drizzle.${NC}"
