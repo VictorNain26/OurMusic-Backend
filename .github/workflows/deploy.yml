@@ -29,5 +29,7 @@ jobs:
             # Reconstruire l'image Docker "backend" sans cache
             docker compose build --no-cache backend
 
+            docker image prune -f
+
             # Relancer le container en arrière-plan
             docker compose up -d backend

@@ -17,12 +17,14 @@ ENV PATH="/root/.local/bin:$PATH"
 RUN bun add -g dotenv-cli
 
 WORKDIR /app
+
 COPY package.json ./
 
-COPY . .
-COPY .env .env
-
 RUN bun install
+
+COPY . .
+
+COPY .env .env
 
 EXPOSE 3000
 
