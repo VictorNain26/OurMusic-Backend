@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "bun src/index.js",
-    "db:migrate": "bun src/migrate.js",
+    "db:generate": "drizzle-kit generate:pg",
+    "db:push": "drizzle-kit push",
     "check": "find src -name '*.js' | xargs bun check && bun test && bun run lint",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
