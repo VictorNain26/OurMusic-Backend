@@ -3,6 +3,7 @@ import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
 export async function verifyAccessToken(req) {
+  if (!req || !req.headers || typeof req.headers.get !== 'function') return null;
   const authHeader = req.headers.get('Authorization') || '';
   if (!authHeader.startsWith('Bearer ')) return null;
   const token = authHeader.replace('Bearer ', '').trim();
