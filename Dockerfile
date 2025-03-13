@@ -19,7 +19,7 @@ WORKDIR /app
 
 # 📦 Installer les dépendances
 COPY package.json bun.lock ./
-RUN bun install
+RUN bun install --verbose && bun x drizzle-kit --version && ls -la node_modules/drizzle-orm
 
 # 🔐 Copier tous les fichiers
 COPY . .
