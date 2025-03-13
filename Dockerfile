@@ -18,7 +18,7 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 
 # 📦 Installer les dépendances
-COPY package.json ./
+COPY package.json bun.lock ./
 RUN bun install
 
 # 🔐 Copier tous les fichiers
