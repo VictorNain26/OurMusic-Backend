@@ -1,6 +1,3 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 export default {
   schema: './src/db/schema.js',
   out: './drizzle/migrations',
