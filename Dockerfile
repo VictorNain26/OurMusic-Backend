@@ -14,21 +14,21 @@ ENV PATH="/root/.bun/bin:$PATH"
 RUN pip3 install pipx && pipx install spotdl yt-dlp
 ENV PATH="/root/.local/bin:$PATH"
 
-# 📁 Créer dossier de travail
+# 📁 Dossier de travail
 WORKDIR /app
 
-# 📦 Installer les dépendances
+# 📦 Copier package.json + bun.lock et installer
 COPY package.json bun.lock ./
-RUN bun install --verbose && bun x drizzle-kit --version && ls -la node_modules/drizzle-orm
+RUN bun install --no-cache
 
 # 🔐 Copier tous les fichiers
 COPY . .
 
-# ⚙ Autoriser l’exécution du script d’entrée
+# ⚙ Donner les droits d'exécution à entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# 📤 Exposer le port backend
+# 📤 Exposer le port
 EXPOSE 3000
 
-# 🚀 Commande de démarrage
+# 🟢 Lancer l'application via le script shell
 CMD ["/app/entrypoint.sh"]

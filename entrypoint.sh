@@ -12,6 +12,14 @@ until pg_isready -h db -p 5432; do
 done
 echo -e "${GREEN}✅ Base de données accessible.${NC}"
 
+echo -e "${YELLOW}🔍 Vérification de la présence du package drizzle-orm...${NC}"
+if [ -d "node_modules/drizzle-orm" ]; then
+  echo -e "${GREEN}✅ drizzle-orm est bien installé.${NC}"
+else
+  echo -e "${RED}❌ drizzle-orm est manquant dans node_modules. Installation...${NC}"
+  bun install --no-cache
+fi
+
 echo -e "${YELLOW}📂 Exécution des migrations Drizzle ORM...${NC}"
 if bun run db:push; then
   echo -e "${GREEN}✅ Migrations appliquées avec succès.${NC}"
