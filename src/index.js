@@ -17,6 +17,7 @@ const app = new Elysia()
     set.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
     set.headers['Access-Control-Allow-Credentials'] = 'true';
   })
+  .onOptions(() => new Response(null, { status: 204 }))
   .use(authRoutes)
   .use(trackRoutes)
   .use(spotifyRoutes)
