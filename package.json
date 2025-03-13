@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "bun src/index.js",
-    "db:generate": "dotenv -e .env -- bunx drizzle-kit generate",
-    "db:push": "dotenv -e .env -- bunx drizzle-kit push",
+    "db:generate": "bunx dotenv -e .env -- bunx drizzle-kit generate",
+    "db:push": "bunx dotenv -e .env -- bunx drizzle-kit push",
     "check": "find src -name '*.js' | xargs bun check && bun test && bun run lint",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
