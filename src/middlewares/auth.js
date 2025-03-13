@@ -1,5 +1,6 @@
 import { verifyToken } from '../utils/helpers.js';
-import { User } from '../db.js';
+import { db, schema } from '../db/index.js';
+import { eq } from 'drizzle-orm';
 
 export async function verifyAccessToken(req) {
   const authHeader = req.headers.get('Authorization') || '';
@@ -7,7 +8,12 @@ export async function verifyAccessToken(req) {
   const token = authHeader.replace('Bearer ', '').trim();
   const decoded = verifyToken(token);
   if (!decoded) return null;
-  return await User.findByPk(decoded.id);
+  const user = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.id, decoded.id))
+    .then(r => r[0]);
+  return user || null;
 }
 
 export async function verifyAdmin(req) {
@@ -23,5 +29,10 @@ export async function verifyRefreshToken(req) {
   const token = match[2];
   const decoded = verifyToken(token);
   if (!decoded) return null;
-  return await User.findByPk(decoded.id);
+  const user = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.id, decoded.id))
+    .then(r => r[0]);
+  return user || null;
 }

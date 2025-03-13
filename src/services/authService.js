@@ -1,4 +1,4 @@
-import { User } from '../db.js';
+import { db, schema } from '../db/index.js';
 import bcrypt from 'bcryptjs';
 import {
   signAccessToken,
@@ -10,43 +10,41 @@ import {
   errorResponse,
   unauthorizedResponse,
 } from '../utils/helpers.js';
+import { eq, or } from 'drizzle-orm';
 
 export async function register(req, headers) {
   const { username, email, password } = await req.json();
   if (!username || !email || !password)
     return errorResponse('Champs requis manquants', 400, headers);
-  const exists = await User.findOne({ where: { email } });
-  if (exists) return errorResponse('Email déjà utilisé', 400, headers);
-  const user = await User.create({ username, email, password });
-  return jsonResponse(
-    { message: 'Inscription réussie', user: { id: user.id, email, username } },
-    201,
-    headers
-  );
+  const existing = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.email, email))
+    .then(r => r[0]);
+  if (existing) return errorResponse('Email déjà utilisé', 400, headers);
+  const [user] = await db.insert(schema.users).values({ username, email, password }).returning();
+  return jsonResponse({ message: 'Inscription réussie', user }, 201, headers);
 }
 
 export async function login(req, headers) {
   const { email, password } = await req.json();
-  const user = await User.findOne({ where: { email } });
+  const user = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.email, email))
+    .then(r => r[0]);
   if (!user || !(await bcrypt.compare(password, user.password)))
     return unauthorizedResponse(headers);
   const accessToken = signAccessToken(user);
   const refreshToken = signRefreshToken(user);
-  return new Response(
-    JSON.stringify({
-      message: 'Connexion OK',
-      accessToken,
-      user: { id: user.id, email, username: user.username, role: user.role },
-    }),
-    {
-      status: 200,
-      headers: {
-        ...headers,
-        'Set-Cookie': createRefreshCookie(refreshToken),
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+  return new Response(JSON.stringify({ message: 'Connexion OK', accessToken, user }), {
+    status: 200,
+    headers: {
+      ...headers,
+      'Set-Cookie': createRefreshCookie(refreshToken),
+      'Content-Type': 'application/json',
+    },
+  });
 }
 
 export async function refresh(req, headers) {
@@ -54,7 +52,11 @@ export async function refresh(req, headers) {
   if (!match) return unauthorizedResponse(headers);
   const decoded = verifyToken(match[2]);
   if (!decoded) return unauthorizedResponse(headers);
-  const user = await User.findByPk(decoded.id);
+  const user = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.id, decoded.id))
+    .then(r => r[0]);
   if (!user) return unauthorizedResponse(headers);
   return jsonResponse({ accessToken: signAccessToken(user) }, 200, headers);
 }
@@ -63,13 +65,15 @@ export async function me(req, headers) {
   const authHeader = req.headers.get('Authorization') || '';
   if (!authHeader.startsWith('Bearer ')) return unauthorizedResponse(headers);
   const decoded = verifyToken(authHeader.replace('Bearer ', '').trim());
-  const user = decoded ? await User.findByPk(decoded.id) : null;
+  const user = decoded
+    ? await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, decoded.id))
+        .then(r => r[0])
+    : null;
   if (!user) return unauthorizedResponse(headers);
-  return jsonResponse(
-    { id: user.id, email: user.email, username: user.username, role: user.role },
-    200,
-    headers
-  );
+  return jsonResponse(user, 200, headers);
 }
 
 export async function logout(_, headers) {
