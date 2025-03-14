@@ -24,9 +24,9 @@ const app = new Elysia()
   // 🔒 Configuration CORS
   .use(
     cors({
-      origin: env.ALLOWED_ORIGINS,
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      origin: env.ALLOWED_ORIGINS, // Assurez-vous que c'est l'URL du frontend
+      credentials: true, // Autoriser l'envoi des cookies et des tokens
+      methods: ['GET', 'POST', 'DELETE', 'OPTIONS'], // Bien inclure DELETE
       allowedHeaders: ['Content-Type', 'Authorization'],
     })
   )
@@ -55,7 +55,7 @@ const app = new Elysia()
     });
   })
 
-  // 🚀 Démarrage du serveur sur le port configuré
+  // 🚀 Démarrage du serveur
   .listen(parseInt(env.PORT));
 
 console.log(`✅ Elysia server listening on http://localhost:${env.PORT}`);
