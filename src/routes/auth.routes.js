@@ -1,7 +1,6 @@
-// src/routes/auth.routes.js
 import { Elysia } from 'elysia';
 import { cookie } from '@elysiajs/cookie';
-import { registerUser, loginUser } from '../services/authService.js';
+import { registerUser, loginUser, sanitizeUser } from '../services/authService.js';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
@@ -12,7 +11,10 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
   .post('/register', async ({ body }) => {
     try {
       const user = await registerUser(body);
-      return { message: 'Inscription réussie', user };
+      return {
+        message: 'Inscription réussie',
+        user: sanitizeUser(user),
+      };
     } catch (err) {
       console.error('[Register Error]', err);
       return new Response(
@@ -41,7 +43,7 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       return {
         message: 'Connexion réussie',
         accessToken,
-        user,
+        user: sanitizeUser(user),
       };
     } catch (err) {
       console.error('[Login Error]', err);
@@ -102,7 +104,7 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
         .then(r => r[0]);
 
       if (!user) throw new Error('Utilisateur introuvable');
-      return user;
+      return sanitizeUser(user);
     } catch (err) {
       console.error('[Me Error]', err);
       return new Response(JSON.stringify({ error: 'Token invalide' }), {

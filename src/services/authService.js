@@ -39,16 +39,27 @@ export async function registerUser({ username, email, password }) {
     .insert(schema.users)
     .values({ username, email, password: hashed })
     .returning();
+
   return user;
 }
 
 export async function loginUser({ email, password }) {
+  if (!email || !password) throw new Error('Champs requis manquants');
+
   const user = await db
     .select()
     .from(schema.users)
     .where(eq(schema.users.email, email))
     .then(r => r[0]);
-  if (!user || !(await bcrypt.compare(password, user.password)))
+
+  if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new Error('Identifiants invalides');
+  }
+
   return user;
+}
+
+export function sanitizeUser(user) {
+  const { password, ...safeUser } = user;
+  return safeUser;
 }
