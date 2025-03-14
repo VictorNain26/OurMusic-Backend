@@ -1,22 +1,12 @@
-// src/services/trackService.js
-
 import { db, schema } from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { jsonResponse, createError } from '../lib/response.js';
 
-/**
- * Like un morceau pour l'utilisateur connecté.
- * Vérifie d'abord si le morceau est déjà liké afin d'éviter la duplication.
- *
- * @param {Object} ctx - Contexte de la requête contenant ctx.body et ctx.user.
- * @returns {Response} Réponse JSON indiquant le succès ou l'erreur.
- */
 export async function likeTrack(ctx) {
   const user = ctx.user;
   const { title, artist, artwork, youtubeUrl } = ctx.body;
 
   try {
-    // Vérifier si le morceau est déjà liké par l'utilisateur
     const existingTrack = await db
       .select()
       .from(schema.likedTracks)
@@ -34,7 +24,6 @@ export async function likeTrack(ctx) {
       return createError('Déjà liké', 400);
     }
 
-    // Insérer le morceau liké
     const [likedTrack] = await db
       .insert(schema.likedTracks)
       .values({ title, artist, artwork, youtubeUrl, userId: user.id })
@@ -47,12 +36,6 @@ export async function likeTrack(ctx) {
   }
 }
 
-/**
- * Récupère la liste des morceaux likés pour l'utilisateur connecté.
- *
- * @param {Object} ctx - Contexte de la requête contenant ctx.user.
- * @returns {Response} Réponse JSON avec la liste des morceaux likés ou une erreur.
- */
 export async function getLikedTracks(ctx) {
   const user = ctx.user;
 
@@ -69,19 +52,14 @@ export async function getLikedTracks(ctx) {
   }
 }
 
-/**
- * Supprime un morceau liké pour l'utilisateur connecté.
- * Valide l'ID et vérifie que le morceau appartient à l'utilisateur avant suppression.
- *
- * @param {Object} ctx - Contexte de la requête contenant ctx.params.id et ctx.user.
- * @returns {Response} Réponse JSON indiquant le succès ou l'erreur.
- */
 export async function unlikeTrack(ctx) {
   const user = ctx.user;
-  if (!user) return createError('Utilisateur non authentifié', 401);
+  const trackId = ctx.id;
 
-  const trackId = Number(ctx.params.id);
-  if (isNaN(trackId)) return createError('ID invalide', 400);
+  console.log('[Service DELETE] id reçu =', trackId);
+
+  if (!user) return createError('Utilisateur non authentifié', 401);
+  if (!trackId || isNaN(trackId)) return createError('ID invalide', 400);
 
   try {
     const existingTrack = await db

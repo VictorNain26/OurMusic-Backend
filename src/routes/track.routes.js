@@ -36,16 +36,16 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
   })
 
   .delete('/like/:id', async ctx => {
-    console.log('DELETE id reçu:', ctx.params.id);
     const auth = await requireAuth(ctx);
     if (auth !== true) return auth;
 
     const id = parseInt(ctx.params.id);
     if (isNaN(id)) return createError('ID invalide', 400);
-    ctx.params.id = id;
+
+    console.log('[Route DELETE] id reçu =', id);
 
     try {
-      const result = await trackService.unlikeTrack(ctx);
+      const result = await trackService.unlikeTrack({ ...ctx, id });
       return result;
     } catch (err) {
       console.error('[Track Unlike Error]', err);
