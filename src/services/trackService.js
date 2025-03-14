@@ -2,9 +2,12 @@ import { db, schema } from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
 import { jsonResponse, createError } from '../lib/response.js';
 
+/**
+ * ✅ Like un morceau pour un utilisateur donné
+ */
 export async function likeTrack(ctx) {
-  const user = ctx.user;
-  const { title, artist, artwork, youtubeUrl } = ctx.body;
+  const { user, body } = ctx;
+  const { title, artist, artwork, youtubeUrl } = body;
 
   try {
     const existingTrack = await db
@@ -31,13 +34,16 @@ export async function likeTrack(ctx) {
 
     return jsonResponse({ message: 'Morceau liké', likedTrack }, 201);
   } catch (err) {
-    console.error('[LikeTrack Error]', err);
+    console.error('[TrackService → likeTrack]', err);
     return createError('Erreur serveur lors du like', 500);
   }
 }
 
+/**
+ * ✅ Récupère les morceaux likés de l’utilisateur connecté
+ */
 export async function getLikedTracks(ctx) {
-  const user = ctx.user;
+  const { user } = ctx;
 
   try {
     const likedTracks = await db
@@ -47,16 +53,16 @@ export async function getLikedTracks(ctx) {
 
     return jsonResponse({ likedTracks }, 200);
   } catch (err) {
-    console.error('[GetLikedTracks Error]', err);
+    console.error('[TrackService → getLikedTracks]', err);
     return createError('Erreur serveur lors de la récupération des morceaux', 500);
   }
 }
 
+/**
+ * ✅ Supprime un morceau liké (unlike) pour l’utilisateur connecté
+ */
 export async function unlikeTrack(ctx) {
-  const user = ctx.user;
-  const trackId = ctx.id;
-
-  console.log('[Service DELETE] id reçu =', trackId);
+  const { user, id: trackId } = ctx;
 
   if (!user) return createError('Utilisateur non authentifié', 401);
   if (!trackId || isNaN(trackId)) return createError('ID invalide', 400);
@@ -79,7 +85,7 @@ export async function unlikeTrack(ctx) {
 
     return jsonResponse({ message: 'Morceau retiré des favoris', trackId });
   } catch (err) {
-    console.error('[UnlikeTrack Error]', err);
+    console.error('[TrackService → unlikeTrack]', err);
     return createError('Erreur serveur lors de la suppression du morceau liké', 500);
   }
 }
