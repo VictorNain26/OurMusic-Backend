@@ -35,8 +35,8 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
     }
   })
 
-  // ❌ Unliker un morceau
-  .delete('/like/:id', async ctx => {
+  // ❌ Unliker un morceau (⚠️ ajout body: false pour éviter PARSE error)
+  .delete('/like/:id', { body: false }, async ctx => {
     const auth = await requireAuth(ctx);
     if (auth !== true) return auth;
 
