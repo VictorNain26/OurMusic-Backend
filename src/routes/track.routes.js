@@ -35,20 +35,44 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
     }
   })
 
-  .delete('/like/:id', async ctx => {
-    const auth = await requireAuth(ctx);
-    if (auth !== true) return auth;
+  .delete('/like/:trackId', async ({ params, user, set }) => {
+    console.log('[DELETE] Entrée dans route DELETE /like/:trackId');
 
-    const id = parseInt(ctx.params.id);
-    if (isNaN(id)) return createError('ID invalide', 400);
+    const id = parseInt(params.trackId);
+    if (isNaN(id)) {
+      console.log('[DELETE] ID non valide reçu:', params.trackId);
+      set.status = 400;
+      return { error: 'ID invalide' };
+    }
 
-    console.log('[Route DELETE] id reçu =', id);
+    console.log('[DELETE] ID parsé:', id);
+
+    if (!user) {
+      set.status = 401;
+      return { error: 'Non authentifié' };
+    }
 
     try {
-      const result = await trackService.unlikeTrack({ ...ctx, id });
-      return result;
+      const existingTrack = await db
+        .select()
+        .from(schema.likedTracks)
+        .where(and(eq(schema.likedTracks.id, id), eq(schema.likedTracks.userId, user.id)))
+        .limit(1)
+        .then(res => res[0]);
+
+      if (!existingTrack) {
+        set.status = 404;
+        return { error: 'Track non trouvé' };
+      }
+
+      await db
+        .delete(schema.likedTracks)
+        .where(and(eq(schema.likedTracks.id, id), eq(schema.likedTracks.userId, user.id)));
+
+      return { message: 'Track supprimé', id };
     } catch (err) {
-      console.error('[Track Unlike Error]', err);
-      return createError('Erreur serveur lors du unlike', 500);
+      console.error('[DELETE ERROR]', err);
+      set.status = 500;
+      return { error: 'Erreur serveur lors du unlike' };
     }
   });
