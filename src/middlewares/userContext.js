@@ -1,3 +1,6 @@
+import { db, schema } from '../db/index.js';
+import { eq } from 'drizzle-orm';
+
 export function userContext() {
   return app => {
     app.onRequest(async ctx => {
