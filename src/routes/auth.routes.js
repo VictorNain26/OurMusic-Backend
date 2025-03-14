@@ -1,13 +1,17 @@
 import { Elysia } from 'elysia';
-import { cookie } from '@elysiajs/cookie';
 import { registerUser, loginUser, sanitizeUser } from '../services/authService.js';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
 export const authRoutes = new Elysia({ prefix: '/api/auth' })
-  .use(cookie()) // ✅ Corrige le bug ctx.setCookie undefined
+  .onError(({ error }) => {
+    console.error('[Auth Route Error]', error);
+    return new Response(JSON.stringify({ error: 'Erreur authentification' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  })
 
-  // 📥 Inscription
   .post('/register', async ({ body }) => {
     try {
       const user = await registerUser(body);
@@ -24,21 +28,20 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     }
   })
 
-  // 🔐 Connexion
   .post('/login', async ctx => {
     try {
       const user = await loginUser(ctx.body);
-
       const accessToken = await ctx.jwt.sign({ id: user.id, role: user.role });
       const refreshToken = await ctx.jwt.sign({ id: user.id, role: user.role, exp: '7d' });
 
-      ctx.setCookie('refresh', refreshToken, {
+      ctx.cookie.refresh = {
+        value: refreshToken,
         httpOnly: true,
         secure: true,
         sameSite: 'None',
         path: '/',
         maxAge: 60 * 60 * 24 * 7,
-      });
+      };
 
       return {
         message: 'Connexion réussie',
@@ -54,9 +57,8 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     }
   })
 
-  // ♻ Rafraîchir l'access token
   .post('/refresh', async ctx => {
-    const token = ctx.cookie.get('refresh');
+    const token = ctx.cookie?.refresh?.value;
     if (!token) {
       return new Response(JSON.stringify({ error: 'Token manquant' }), {
         status: 401,
@@ -85,37 +87,21 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     }
   })
 
-  // 👤 Infos utilisateur courant
   .get('/me', async ctx => {
-    const auth = ctx.headers['authorization'] || '';
-    if (!auth.startsWith('Bearer ')) {
+    if (!ctx.user) {
       return new Response(JSON.stringify({ error: 'Non authentifié' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-
-    try {
-      const decoded = await ctx.jwt.verify(auth.replace('Bearer ', '').trim());
-      const user = await db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.id, decoded.id))
-        .then(r => r[0]);
-
-      if (!user) throw new Error('Utilisateur introuvable');
-      return sanitizeUser(user);
-    } catch (err) {
-      console.error('[Me Error]', err);
-      return new Response(JSON.stringify({ error: 'Token invalide' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    return sanitizeUser(ctx.user);
   })
 
-  // 🚪 Déconnexion
   .post('/logout', ctx => {
-    ctx.removeCookie('refresh');
+    ctx.cookie.refresh = {
+      value: '',
+      path: '/',
+      maxAge: 0,
+    };
     return { message: 'Déconnexion réussie' };
   });
