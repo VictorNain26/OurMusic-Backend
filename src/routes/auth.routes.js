@@ -14,13 +14,13 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     }
   })
 
-  .post('/login', async ({ body, jwt, cookie }) => {
+  .post('/login', async ctx => {
     try {
-      const user = await loginUser(body);
-      const accessToken = await jwt.sign({ id: user.id, role: user.role });
-      const refreshToken = await jwt.sign({ id: user.id, role: user.role, exp: '7d' });
+      const user = await loginUser(ctx.body);
+      const accessToken = await ctx.jwt.sign({ id: user.id, role: user.role });
+      const refreshToken = await ctx.jwt.sign({ id: user.id, role: user.role, exp: '7d' });
 
-      cookie.set('refresh', refreshToken, {
+      ctx.cookie.set('refresh', refreshToken, {
         httpOnly: true,
         secure: true,
         sameSite: 'None',
@@ -34,32 +34,32 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     }
   })
 
-  .post('/refresh', async ({ jwt, cookie }) => {
-    const token = cookie.get('refresh');
+  .post('/refresh', async ctx => {
+    const token = ctx.cookie.get('refresh');
     if (!token) return new Response(JSON.stringify({ error: 'Token manquant' }), { status: 401 });
 
     try {
-      const decoded = await jwt.verify(token);
+      const decoded = await ctx.jwt.verify(token);
       const user = await db
         .select()
         .from(schema.users)
         .where(eq(schema.users.id, decoded.id))
         .then(r => r[0]);
       if (!user) throw new Error('Utilisateur introuvable');
-      const accessToken = await jwt.sign({ id: user.id, role: user.role });
+      const accessToken = await ctx.jwt.sign({ id: user.id, role: user.role });
       return { accessToken };
     } catch (err) {
       return new Response(JSON.stringify({ error: 'Refresh token invalide' }), { status: 401 });
     }
   })
 
-  .get('/me', async ({ jwt, headers }) => {
-    const auth = headers['authorization'] || '';
+  .get('/me', async ctx => {
+    const auth = ctx.headers['authorization'] || '';
     if (!auth.startsWith('Bearer '))
       return new Response(JSON.stringify({ error: 'Non authentifié' }), { status: 401 });
 
     try {
-      const decoded = await jwt.verify(auth.replace('Bearer ', '').trim());
+      const decoded = await ctx.jwt.verify(auth.replace('Bearer ', '').trim());
       const user = await db
         .select()
         .from(schema.users)
@@ -72,7 +72,7 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     }
   })
 
-  .post('/logout', ({ cookie }) => {
-    cookie.remove('refresh');
+  .post('/logout', ctx => {
+    ctx.cookie.remove('refresh');
     return { message: 'Déconnexion réussie' };
   });
