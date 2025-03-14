@@ -1,9 +1,6 @@
-import { db, schema } from '../db/index.js';
-import { eq } from 'drizzle-orm';
-
 export function userContext() {
-  return {
-    async onRequest(ctx) {
+  return app => {
+    app.onRequest(async ctx => {
       const token =
         ctx.request.headers.get('Authorization')?.replace('Bearer ', '').trim() ||
         ctx.cookie?.refresh?.value;
@@ -27,6 +24,6 @@ export function userContext() {
           console.warn('[JWT Decode Error]', err.message);
         }
       }
-    },
+    });
   };
 }
