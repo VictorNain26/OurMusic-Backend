@@ -1,10 +1,13 @@
 import { Elysia } from 'elysia';
+import { validate } from '@elysiajs/valibot';
+import { likeTrackSchema } from '../validators/trackValidator.js';
 import * as trackService from '../services/trackService.js';
 import { requireAuth } from '../middlewares/auth.js';
 
 export const trackRoutes = new Elysia({ prefix: '/api/track' })
-  // ❤️ Liker un morceau
-  .post('/like', async ctx => {
+
+  // ❤️ Like track
+  .post('/like', validate('json', likeTrackSchema), async ctx => {
     const auth = await requireAuth(ctx);
     if (auth !== true) return auth;
 
@@ -12,14 +15,14 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
       return await trackService.likeTrack(ctx);
     } catch (err) {
       console.error('[Track Like Error]', err);
-      return new Response(JSON.stringify({ error: "Erreur lors de l'ajout du morceau" }), {
+      return new Response(JSON.stringify({ error: err.message || 'Erreur lors du like' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }
   })
 
-  // 📥 Récupérer les morceaux likés
+  // 📥 Liste des morceaux likés
   .get('/like', async ctx => {
     const auth = await requireAuth(ctx);
     if (auth !== true) return auth;
@@ -27,15 +30,18 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
     try {
       return await trackService.getLikedTracks(ctx);
     } catch (err) {
-      console.error('[Track List Error]', err);
+      console.error('[Track Get Error]', err);
       return new Response(
         JSON.stringify({ error: 'Erreur lors de la récupération des morceaux' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
       );
     }
   })
 
-  // ❌ Unliker un morceau (⚠️ ajout body: false pour éviter PARSE error)
+  // ❌ Unlike track
   .delete('/like/:id', { body: false }, async ctx => {
     const auth = await requireAuth(ctx);
     if (auth !== true) return auth;
@@ -44,7 +50,7 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
       return await trackService.unlikeTrack(ctx);
     } catch (err) {
       console.error('[Track Unlike Error]', err);
-      return new Response(JSON.stringify({ error: 'Erreur lors de la suppression du morceau' }), {
+      return new Response(JSON.stringify({ error: 'Erreur lors du unlike' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });

@@ -1,10 +1,7 @@
+import { createError } from '../lib/response.js';
+
 export async function requireAuth(ctx) {
-  if (!ctx.user) {
-    return new Response(JSON.stringify({ error: 'Non authentifié' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+  if (!ctx.user) return createError('Non authentifié', 401);
   return true;
 }
 
@@ -13,10 +10,8 @@ export async function requireAdmin(ctx) {
   if (auth !== true) return auth;
 
   if (ctx.user.role !== 'admin') {
-    return new Response(JSON.stringify({ error: 'Accès refusé : admin requis' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return createError('Accès refusé : admin requis', 403);
   }
+
   return true;
 }

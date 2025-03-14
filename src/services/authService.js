@@ -6,14 +6,10 @@ export async function createAdminUser() {
   const { ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD } = Bun.env;
   if (!ADMIN_EMAIL || !ADMIN_USERNAME || !ADMIN_PASSWORD) return;
 
-  const existing = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.email, ADMIN_EMAIL))
-    .then(r => r[0]);
+  const existing = await getUserByEmail(ADMIN_EMAIL);
   if (existing) return;
 
-  const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
+  const hashedPassword = await hashPassword(ADMIN_PASSWORD);
   await db.insert(schema.users).values({
     username: ADMIN_USERNAME,
     email: ADMIN_EMAIL,
@@ -25,16 +21,16 @@ export async function createAdminUser() {
 }
 
 export async function registerUser({ username, email, password }) {
-  if (!username || !email || !password) throw new Error('Champs requis manquants');
+  if (!username || !email || !password) {
+    throw new Error('Tous les champs sont requis');
+  }
 
-  const existing = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.email, email))
-    .then(r => r[0]);
-  if (existing) throw new Error('Email déjà utilisé');
+  const existing = await getUserByEmail(email);
+  if (existing) {
+    throw new Error('Email déjà utilisé');
+  }
 
-  const hashed = await bcrypt.hash(password, 10);
+  const hashed = await hashPassword(password);
   const [user] = await db
     .insert(schema.users)
     .values({ username, email, password: hashed })
@@ -44,15 +40,12 @@ export async function registerUser({ username, email, password }) {
 }
 
 export async function loginUser({ email, password }) {
-  if (!email || !password) throw new Error('Champs requis manquants');
+  if (!email || !password) {
+    throw new Error('Champs requis manquants');
+  }
 
-  const user = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.email, email))
-    .then(r => r[0]);
-
-  if (!user || !(await bcrypt.compare(password, user.password))) {
+  const user = await getUserByEmail(email);
+  if (!user || !(await comparePassword(password, user.password))) {
     throw new Error('Identifiants invalides');
   }
 
@@ -62,4 +55,22 @@ export async function loginUser({ email, password }) {
 export function sanitizeUser(user) {
   const { password, ...safeUser } = user;
   return safeUser;
+}
+
+// 🔧 Helpers internes
+
+async function getUserByEmail(email) {
+  return await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.email, email))
+    .then(r => r[0]);
+}
+
+async function hashPassword(password) {
+  return await bcrypt.hash(password, 10);
+}
+
+async function comparePassword(plain, hashed) {
+  return await bcrypt.compare(plain, hashed);
 }
