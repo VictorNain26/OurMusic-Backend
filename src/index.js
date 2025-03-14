@@ -39,10 +39,19 @@ const app = new Elysia()
           .where(eq(schema.users.id, decoded.id))
           .then(r => r[0]);
         if (user) ctx.user = user;
-      } catch {}
+      } catch (err) {
+        console.warn('[JWT Decode Error]', err);
+      }
     }
   })
   .options('/*', () => new Response(null, { status: 204 }))
+  .onError(({ error }) => {
+    console.error('[Global Error Handler]', error);
+    return new Response(JSON.stringify({ error: 'Erreur interne du serveur' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  })
   .use(authRoutes)
   .use(trackRoutes)
   .use(spotifyRoutes)
