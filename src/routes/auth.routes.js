@@ -10,7 +10,11 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       const user = await registerUser(body);
       return { message: 'Inscription réussie', user };
     } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), { status: 400 });
+      console.error('[Register Error]', err);
+      return new Response(
+        JSON.stringify({ error: "Échec de l'inscription. Veuillez réessayer." }),
+        { status: 400 }
+      );
     }
   })
 
@@ -20,7 +24,7 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       const accessToken = await ctx.jwt.sign({ id: user.id, role: user.role });
       const refreshToken = await ctx.jwt.sign({ id: user.id, role: user.role, exp: '7d' });
 
-      ctx.cookie.set('refresh', refreshToken, {
+      ctx.setCookie('refresh', refreshToken, {
         httpOnly: true,
         secure: true,
         sameSite: 'None',
@@ -30,13 +34,18 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
 
       return { message: 'Connexion réussie', accessToken, user };
     } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), { status: 401 });
+      console.error('[Login Error]', err);
+      return new Response(JSON.stringify({ error: 'Échec de la connexion. Veuillez réessayer.' }), {
+        status: 401,
+      });
     }
   })
 
   .post('/refresh', async ctx => {
     const token = ctx.cookie.get('refresh');
-    if (!token) return new Response(JSON.stringify({ error: 'Token manquant' }), { status: 401 });
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Token manquant' }), { status: 401 });
+    }
 
     try {
       const decoded = await ctx.jwt.verify(token);
@@ -45,18 +54,22 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
         .from(schema.users)
         .where(eq(schema.users.id, decoded.id))
         .then(r => r[0]);
+
       if (!user) throw new Error('Utilisateur introuvable');
+
       const accessToken = await ctx.jwt.sign({ id: user.id, role: user.role });
       return { accessToken };
     } catch (err) {
+      console.error('[Refresh Token Error]', err);
       return new Response(JSON.stringify({ error: 'Refresh token invalide' }), { status: 401 });
     }
   })
 
   .get('/me', async ctx => {
     const auth = ctx.headers['authorization'] || '';
-    if (!auth.startsWith('Bearer '))
+    if (!auth.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Non authentifié' }), { status: 401 });
+    }
 
     try {
       const decoded = await ctx.jwt.verify(auth.replace('Bearer ', '').trim());
@@ -65,14 +78,17 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
         .from(schema.users)
         .where(eq(schema.users.id, decoded.id))
         .then(r => r[0]);
+
       if (!user) throw new Error('Utilisateur introuvable');
       return user;
-    } catch {
+    } catch (err) {
+      console.error('[Me Error]', err);
       return new Response(JSON.stringify({ error: 'Token invalide' }), { status: 401 });
     }
   })
 
   .post('/logout', ctx => {
-    ctx.cookie.remove('refresh');
+    // ✅ Correction ici : ctx.removeCookie() au lieu de ctx.cookie.remove()
+    ctx.removeCookie('refresh');
     return { message: 'Déconnexion réussie' };
   });
