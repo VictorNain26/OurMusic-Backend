@@ -1,31 +1,34 @@
 import { Elysia } from 'elysia';
-import { validate } from '@elysiajs/valibot';
-import { registerSchema, loginSchema } from '../validators/authValidator.js';
+import { validateBody } from '../lib/validate.js';
+import { registerSchema, loginSchema } from '../validators/authValidators.js';
 import { registerUser, loginUser, sanitizeUser } from '../services/authService.js';
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 import { jsonResponse, createError } from '../lib/response.js';
 
 export const authRoutes = new Elysia({ prefix: '/api/auth' })
+  .post('/register', async ({ body }) => {
+    const data = validateBody(registerSchema, body);
+    if (data instanceof Response) return data;
 
-  // ✅ Register
-  .post('/register', validate('json', registerSchema), async ({ body }) => {
     try {
-      const user = await registerUser(body);
+      const user = await registerUser(data);
       return jsonResponse({ message: 'Inscription réussie', user: sanitizeUser(user) }, 201);
     } catch (err) {
       return createError(err.message || "Échec de l'inscription", 400);
     }
   })
 
-  // ✅ Login
-  .post('/login', validate('json', loginSchema), async ctx => {
-    try {
-      const user = await loginUser(ctx.body);
-      const accessToken = await ctx.jwt.sign({ id: user.id, role: user.role });
-      const refreshToken = await ctx.jwt.sign({ id: user.id, role: user.role, exp: '7d' });
+  .post('/login', async ({ body, jwt, cookie }) => {
+    const data = validateBody(loginSchema, body);
+    if (data instanceof Response) return data;
 
-      ctx.cookie.refresh = {
+    try {
+      const user = await loginUser(data);
+      const accessToken = await jwt.sign({ id: user.id, role: user.role });
+      const refreshToken = await jwt.sign({ id: user.id, role: user.role, exp: '7d' });
+
+      cookie.refresh = {
         value: refreshToken,
         httpOnly: true,
         secure: true,
@@ -40,40 +43,32 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
     }
   })
 
-  // 🔁 Refresh token
-  .post('/refresh', async ctx => {
-    const token = ctx.cookie?.refresh?.value;
+  .post('/refresh', async ({ jwt, cookie }) => {
+    const token = cookie?.refresh?.value;
     if (!token) return createError('Token manquant', 401);
 
     try {
-      const decoded = await ctx.jwt.verify(token);
+      const decoded = await jwt.verify(token);
       const user = await db
         .select()
         .from(schema.users)
         .where(eq(schema.users.id, decoded.id))
         .then(r => r[0]);
-
       if (!user) return createError('Utilisateur introuvable', 404);
 
-      const accessToken = await ctx.jwt.sign({ id: user.id, role: user.role });
+      const accessToken = await jwt.sign({ id: user.id, role: user.role });
       return jsonResponse({ accessToken });
     } catch (err) {
       return createError('Refresh token invalide', 401);
     }
   })
 
-  // ✅ Me
-  .get('/me', async ctx => {
-    if (!ctx.user) return createError('Non authentifié', 401);
-    return jsonResponse(sanitizeUser(ctx.user));
+  .get('/me', ({ user }) => {
+    if (!user) return createError('Non authentifié', 401);
+    return jsonResponse(sanitizeUser(user));
   })
 
-  // 🔚 Logout
-  .post('/logout', ctx => {
-    ctx.cookie.refresh = {
-      value: '',
-      path: '/',
-      maxAge: 0,
-    };
+  .post('/logout', ({ cookie }) => {
+    cookie.refresh = { value: '', path: '/', maxAge: 0 };
     return jsonResponse({ message: 'Déconnexion réussie' });
   });
