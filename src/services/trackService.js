@@ -80,39 +80,26 @@ export async function unlikeTrack(ctx) {
   const user = ctx.user;
   if (!user) return createError('Utilisateur non authentifié', 401);
 
-  // Utiliser isNaN() pour vérifier l'ID
   const trackId = Number(ctx.params.id);
   if (isNaN(trackId)) return createError('ID invalide', 400);
 
-  console.log('Unliking track ID:', trackId, "pour l'utilisateur:", user.id);
-
   try {
-    // Vérifier si le morceau existe et appartient à l'utilisateur
-    const existingTracks = await db
+    const existingTrack = await db
       .select()
       .from(schema.likedTracks)
       .where(and(eq(schema.likedTracks.id, trackId), eq(schema.likedTracks.userId, user.id)))
-      .limit(1);
+      .limit(1)
+      .then(res => res[0]);
 
-    console.log('Résultat de la requête pour le morceau existant:', existingTracks);
-
-    if (existingTracks.length === 0) {
+    if (!existingTrack) {
       return createError('Morceau introuvable ou non associé à cet utilisateur', 404);
     }
 
-    // Supprimer le morceau
-    const deletedTracks = await db
+    await db
       .delete(schema.likedTracks)
-      .where(and(eq(schema.likedTracks.id, trackId), eq(schema.likedTracks.userId, user.id)))
-      .returning();
+      .where(and(eq(schema.likedTracks.id, trackId), eq(schema.likedTracks.userId, user.id)));
 
-    console.log('Résultat de la suppression:', deletedTracks);
-
-    if (!deletedTracks || deletedTracks.length === 0) {
-      return createError('Échec de la suppression du morceau', 500);
-    }
-
-    return jsonResponse({ message: 'Morceau retiré des favoris' });
+    return jsonResponse({ message: 'Morceau retiré des favoris', trackId });
   } catch (err) {
     console.error('[UnlikeTrack Error]', err);
     return createError('Erreur serveur lors de la suppression du morceau liké', 500);

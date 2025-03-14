@@ -36,6 +36,7 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
   })
 
   .delete('/like/:id', async ctx => {
+    console.log('DELETE id reçu:', ctx.params.id);
     const auth = await requireAuth(ctx);
     if (auth !== true) return auth;
 
