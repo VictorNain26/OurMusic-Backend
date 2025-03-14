@@ -10,7 +10,7 @@ import {
   trimPlaylist,
 } from '../spotify.js';
 import { scrapeTracksForGenres } from '../scraper.js';
-import { delay, ensureDirectoryExists, fileExists, runCommand } from '../utils/helpers.js';
+import { delay, ensureDirectoryExists, fileExists, runCommand } from '../utils.js';
 import path from 'path';
 import axios from 'axios';
 
