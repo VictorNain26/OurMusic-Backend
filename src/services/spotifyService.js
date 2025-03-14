@@ -14,6 +14,7 @@ import { scrapeTracksForGenres } from '../scraper.js';
 import { delay, ensureDirectoryExists, fileExists, runCommand } from '../utils.js';
 import path from 'path';
 import axios from 'axios';
+import { jsonResponse, createError } from '../lib/response.js';
 
 export async function handleSpotifyScrape(ctx, send) {
   try {
