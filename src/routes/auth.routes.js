@@ -15,6 +15,7 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
       const user = await registerUser(data);
       return jsonResponse({ message: 'Inscription réussie', user: sanitizeUser(user) }, 201);
     } catch (err) {
+      console.error('[Register Error]', err);
       return createError(err.message || "Échec de l'inscription", 400);
     }
   })
@@ -37,8 +38,13 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
         maxAge: 60 * 60 * 24 * 7,
       };
 
-      return jsonResponse({ message: 'Connexion réussie', accessToken, user: sanitizeUser(user) });
+      return jsonResponse({
+        message: 'Connexion réussie',
+        accessToken,
+        user: sanitizeUser(user),
+      });
     } catch (err) {
+      console.error('[Login Error]', err);
       return createError(err.message || 'Erreur de connexion', 401);
     }
   })
@@ -54,11 +60,14 @@ export const authRoutes = new Elysia({ prefix: '/api/auth' })
         .from(schema.users)
         .where(eq(schema.users.id, decoded.id))
         .then(r => r[0]);
+
       if (!user) return createError('Utilisateur introuvable', 404);
 
       const accessToken = await jwt.sign({ id: user.id, role: user.role });
+
       return jsonResponse({ accessToken });
     } catch (err) {
+      console.error('[Refresh Error]', err);
       return createError('Refresh token invalide', 401);
     }
   })

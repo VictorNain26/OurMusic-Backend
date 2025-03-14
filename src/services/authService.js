@@ -1,23 +1,31 @@
 import { db, schema } from '../db/index.js';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
+import { logInfo, logError } from '../config/logger.js';
 
+// ➡️ Création de l'utilisateur admin à l'initialisation
 export async function createAdminUser() {
   const { ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD } = Bun.env;
   if (!ADMIN_EMAIL || !ADMIN_USERNAME || !ADMIN_PASSWORD) return;
 
-  const existing = await getUserByEmail(ADMIN_EMAIL);
-  if (existing) return;
+  try {
+    const existing = await getUserByEmail(ADMIN_EMAIL);
+    if (existing) return;
 
-  const hashedPassword = await hashPassword(ADMIN_PASSWORD);
-  await db.insert(schema.users).values({
-    username: ADMIN_USERNAME,
-    email: ADMIN_EMAIL,
-    password: hashedPassword,
-    role: 'admin',
-  });
+    const hashedPassword = await hashPassword(ADMIN_PASSWORD);
 
-  console.log('✅ Utilisateur admin créé.');
+    await db.insert(schema.users).values({
+      username: ADMIN_USERNAME,
+      email: ADMIN_EMAIL,
+      password: hashedPassword,
+      role: 'admin',
+    });
+
+    console.log('✅ Utilisateur admin créé.');
+  } catch (error) {
+    console.error('[createAdminUser Error]', error);
+    throw error;
+  }
 }
 
 export async function registerUser({ username, email, password }) {
@@ -60,11 +68,14 @@ export function sanitizeUser(user) {
 // 🔧 Helpers internes
 
 async function getUserByEmail(email) {
-  return await db
+  const user = await db
     .select()
     .from(schema.users)
     .where(eq(schema.users.email, email))
-    .then(r => r[0]);
+    .limit(1)
+    .then(res => res[0]);
+
+  return user;
 }
 
 async function hashPassword(password) {

@@ -11,11 +11,11 @@ import {
 } from '../spotify.js';
 
 import { scrapeTracksForGenres } from '../scraper.js';
-import { delay, ensureDirectoryExists, fileExists, runCommand } from '../utils.js';
+import { delay, ensureDirectoryExists, fileExists, runCommand } from '../utils/fileUtils.js';
 import path from 'path';
 import axios from 'axios';
-import { jsonResponse, createError } from '../lib/response.js';
 
+// 🎯 Scraping depuis HypeMachine avec enrichissement Spotify
 export async function handleSpotifyScrape(ctx, send) {
   try {
     const genres = ['indie+rock', 'pop', 'rock', 'electronica', 'hip+hop'];
@@ -37,19 +37,19 @@ export async function handleSpotifyScrape(ctx, send) {
         await delay(500);
       }
 
-      const name = `OurMusic - ${genre}`;
-      let playlist = userPlaylists.find(p => p.name?.toLowerCase() === name.toLowerCase());
+      const playlistName = `OurMusic - ${genre}`;
+      let playlist = userPlaylists.find(p => p.name?.toLowerCase() === playlistName.toLowerCase());
 
       if (!playlist) {
         const res = await axios.post(
           `https://api.spotify.com/v1/users/${process.env.SPOTIFY_USER_ID}/playlists`,
-          { name, description: `Auto playlist pour ${genre}`, public: true },
+          { name: playlistName, description: `Auto playlist pour ${genre}`, public: true },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         playlist = res.data;
-        send({ message: `✅ Playlist créée : ${name}` });
+        send({ message: `✅ Playlist créée : ${playlistName}` });
       } else {
-        send({ message: `ℹ Playlist existante : ${name}` });
+        send({ message: `ℹ Playlist existante : ${playlistName}` });
       }
 
       await addTracksIfNotExist(playlist, uris, token, send);
@@ -85,10 +85,10 @@ export async function handleSpotifySyncAll(ctx, send) {
     }
 
     await runCommand(['chmod', '-R', '777', process.env.PLAYLIST_PATH]);
-    send({ message: '✅ Sync global terminé.' });
+    send({ message: '✅ Synchronisation globale terminée.' });
   } catch (err) {
     console.error('[handleSpotifySyncAll Error]', err);
-    send({ error: 'Erreur serveur pendant la synchronisation globale' });
+    send({ error: 'Erreur serveur pendant la synchronisation globale.' });
   }
 }
 
@@ -100,7 +100,8 @@ export async function handleSpotifySyncById(ctx, send, playlistId) {
     await ensureDirectoryExists('/root/.spotdl/temp');
 
     const token = await getSpotifyAccessToken();
-    const playlist = (await getAllUserPlaylists(token)).find(p => p.id === playlistId);
+    const playlists = await getOurMusicPlaylists(token);
+    const playlist = playlists.find(p => p.id === playlistId);
 
     if (!playlist) {
       send({ error: 'Playlist introuvable.' });
@@ -113,24 +114,24 @@ export async function handleSpotifySyncById(ctx, send, playlistId) {
     send({ message: `✅ Sync terminée : ${playlist.name}` });
   } catch (err) {
     console.error('[handleSpotifySyncById Error]', err);
-    send({ error: 'Erreur serveur pendant la sync playlist' });
+    send({ error: 'Erreur serveur pendant la synchronisation de la playlist' });
   }
 }
 
 // 🔄 Fonction de synchronisation unique
 async function syncSinglePlaylist(playlist, token, send) {
   try {
-    const dir = await createPlaylistDirectory(playlist);
+    const playlistDirPath = await createPlaylistDirectory(playlist);
     const safeName = playlist.name.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    const syncFile = path.join(dir, `${safeName}.sync.spotdl`);
+    const syncFile = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
 
     if (await fileExists(syncFile)) {
-      send({ message: `➡ Sync existant pour ${playlist.name}` });
-      await syncPlaylistFile(syncFile, dir, send);
+      send({ message: `➡ Synchronisation existante pour ${playlist.name}` });
+      await syncPlaylistFile(syncFile, playlistDirPath, send);
     } else {
-      send({ message: `📂 Création du fichier de sync pour ${playlist.name}` });
-      await createSyncFile(playlist, dir, send);
-      await syncPlaylistFile(syncFile, dir, send);
+      send({ message: `📂 Création du fichier de synchronisation pour ${playlist.name}` });
+      await createSyncFile(playlist, playlistDirPath, send);
+      await syncPlaylistFile(syncFile, playlistDirPath, send);
     }
   } catch (err) {
     console.error(`[syncSinglePlaylist Error for ${playlist.name}]`, err);
@@ -138,7 +139,7 @@ async function syncSinglePlaylist(playlist, token, send) {
   }
 }
 
-// ➕ Ajout de morceaux absents
+// ➕ Ajout des morceaux absents
 async function addTracksIfNotExist(playlist, uris, token, send) {
   try {
     const existingUris = (

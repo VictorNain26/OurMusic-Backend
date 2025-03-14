@@ -4,4 +4,11 @@ export const env = {
   ALLOWED_ORIGINS: [/https:\/\/ourmusic\.fr$/, /https:\/\/ourmusic-api\.ovh$/],
 };
 
-if (!env.JWT_SECRET) throw new Error('❌ JWT_SECRET manquant dans le .env');
+// ✅ Vérification stricte des variables d'environnement essentielles
+if (!env.JWT_SECRET) {
+  throw new Error('❌ JWT_SECRET manquant dans le fichier .env');
+}
+
+if (!env.ALLOWED_ORIGINS || !Array.isArray(env.ALLOWED_ORIGINS)) {
+  throw new Error('❌ ALLOWED_ORIGINS mal configuré dans le fichier .env');
+}

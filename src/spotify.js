@@ -2,7 +2,7 @@
 import axios from 'axios';
 import path from 'path';
 import fs from 'fs/promises';
-import { runCommand, ensureDirectoryExists } from './utils.js';
+import { runCommand, ensureDirectoryExists } from '../utils/fileUtils.js';
 
 const {
   SPOTIFY_CLIENT_ID,

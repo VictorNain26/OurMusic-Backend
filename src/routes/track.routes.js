@@ -3,6 +3,7 @@ import { validateBody } from '../lib/validate.js';
 import { likeTrackSchema } from '../validators/trackValidator.js';
 import * as trackService from '../services/trackService.js';
 import { requireAuth } from '../middlewares/auth.js';
+import { jsonResponse, createError } from '../lib/response.js';
 
 export const trackRoutes = new Elysia({ prefix: '/api/track' })
   .post('/like', async ctx => {
@@ -11,15 +12,13 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
 
     const data = validateBody(likeTrackSchema, ctx.body);
     if (data instanceof Response) return data;
-    ctx.body = data;
 
     try {
-      return await trackService.likeTrack(ctx);
+      const result = await trackService.likeTrack({ ...ctx, body: data });
+      return result;
     } catch (err) {
       console.error('[Track Like Error]', err);
-      return new Response(JSON.stringify({ error: err.message || 'Erreur lors du like' }), {
-        status: 500,
-      });
+      return createError('Erreur serveur lors du like', 500);
     }
   })
 
@@ -28,13 +27,11 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
     if (auth !== true) return auth;
 
     try {
-      return await trackService.getLikedTracks(ctx);
+      const result = await trackService.getLikedTracks(ctx);
+      return result;
     } catch (err) {
       console.error('[Track Get Error]', err);
-      return new Response(
-        JSON.stringify({ error: 'Erreur lors de la récupération des morceaux' }),
-        { status: 500 }
-      );
+      return createError('Erreur serveur lors de la récupération des morceaux', 500);
     }
   })
 
@@ -42,10 +39,15 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
     const auth = await requireAuth(ctx);
     if (auth !== true) return auth;
 
+    const id = parseInt(ctx.params.id);
+    if (isNaN(id)) return createError('ID invalide', 400);
+    ctx.params.id = id;
+
     try {
-      return await trackService.unlikeTrack(ctx);
+      const result = await trackService.unlikeTrack(ctx);
+      return result;
     } catch (err) {
       console.error('[Track Unlike Error]', err);
-      return new Response(JSON.stringify({ error: 'Erreur lors du unlike' }), { status: 500 });
+      return createError('Erreur serveur lors du unlike', 500);
     }
   });

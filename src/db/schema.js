@@ -1,5 +1,4 @@
-// src/db/schema.js
-import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -15,5 +14,7 @@ export const likedTracks = pgTable('liked_tracks', {
   artist: text('artist').notNull(),
   artwork: text('artwork').notNull(),
   youtubeUrl: text('youtube_url').notNull(),
-  userId: serial('user_id').references(() => users.id),
+  userId: integer('user_id')
+    .references(() => users.id, { onDelete: 'cascade' })
+    .notNull(),
 });
