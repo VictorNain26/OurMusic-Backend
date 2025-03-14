@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import { jwt } from '@elysiajs/jwt';
+import { cors } from '@elysiajs/cors';
 
 import { initDatabase } from './db.js';
 import { createAdminUser } from './services/authService.js';
@@ -14,6 +15,15 @@ await initDatabase();
 await createAdminUser();
 
 const app = new Elysia()
+  // 🌐 CORS plugin (nettoyage complet : headers manuels supprimés)
+  .use(
+    cors({
+      origin: [/https:\/\/ourmusic\.fr$/, /https:\/\/ourmusic-api\.ovh$/],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    })
+  )
 
   // 🔐 Plugin JWT
   .use(
@@ -24,14 +34,8 @@ const app = new Elysia()
     })
   )
 
-  // 🌐 Middleware CORS + Auth
+  // 🔐 Middleware d’auth uniquement (CORS déjà géré par plugin)
   .onRequest(async ctx => {
-    const origin = ctx.request.headers.get('Origin') || '*';
-    ctx.set.headers['Access-Control-Allow-Origin'] = origin;
-    ctx.set.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,PATCH,DELETE,OPTIONS';
-    ctx.set.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
-    ctx.set.headers['Access-Control-Allow-Credentials'] = 'true';
-
     const token =
       ctx.request.headers.get('Authorization')?.replace('Bearer ', '').trim() ||
       ctx.cookie?.refresh?.value;
@@ -50,9 +54,6 @@ const app = new Elysia()
       }
     }
   })
-
-  // 🧼 OPTIONS preflight
-  .options('/*', () => new Response(null, { status: 204 }))
 
   // ❌ Gestion globale des erreurs
   .onError(({ error }) => {
