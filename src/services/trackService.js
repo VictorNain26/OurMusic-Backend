@@ -80,8 +80,11 @@ export async function unlikeTrack(ctx) {
   const user = ctx.user;
   if (!user) return createError('Utilisateur non authentifié', 401);
 
+  // Utiliser isNaN() pour vérifier l'ID
   const trackId = Number(ctx.params.id);
-  if (!trackId) return createError('ID invalide', 400);
+  if (isNaN(trackId)) return createError('ID invalide', 400);
+
+  console.log('Unliking track ID:', trackId, "pour l'utilisateur:", user.id);
 
   try {
     // Vérifier si le morceau existe et appartient à l'utilisateur
@@ -90,6 +93,8 @@ export async function unlikeTrack(ctx) {
       .from(schema.likedTracks)
       .where(and(eq(schema.likedTracks.id, trackId), eq(schema.likedTracks.userId, user.id)))
       .limit(1);
+
+    console.log('Résultat de la requête pour le morceau existant:', existingTracks);
 
     if (existingTracks.length === 0) {
       return createError('Morceau introuvable ou non associé à cet utilisateur', 404);
@@ -100,6 +105,8 @@ export async function unlikeTrack(ctx) {
       .delete(schema.likedTracks)
       .where(and(eq(schema.likedTracks.id, trackId), eq(schema.likedTracks.userId, user.id)))
       .returning();
+
+    console.log('Résultat de la suppression:', deletedTracks);
 
     if (!deletedTracks || deletedTracks.length === 0) {
       return createError('Échec de la suppression du morceau', 500);
