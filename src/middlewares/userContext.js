@@ -1,3 +1,4 @@
+// src/middlewares/userContext.js
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
@@ -28,5 +29,8 @@ export function userContext() {
         }
       }
     });
+
+    // IMPORTANT : retourner l'instance de l'application
+    return app;
   };
 }
