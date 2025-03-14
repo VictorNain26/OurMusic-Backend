@@ -28,11 +28,20 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
 
   // ✅ Supprime un morceau liké
   .delete('/like/:trackId', async ctx => {
+    const trackIdParam = ctx.params?.trackId;
+
+    console.log('[DELETE] Paramètre reçu :', trackIdParam); // ➕ Debug temporaire
+
+    // Sécurisation parsing ID
+    if (!trackIdParam || isNaN(parseInt(trackIdParam))) {
+      console.warn('❌ Paramètre trackId absent ou invalide :', trackIdParam);
+      return createError('ID invalide', 400);
+    }
+
+    const id = parseInt(trackIdParam, 10);
+
     const auth = await requireAuth(ctx);
     if (auth !== true) return auth;
-
-    const id = parseInt(ctx.params.trackId);
-    if (isNaN(id)) return createError('ID invalide', 400);
 
     return await trackService.unlikeTrack({ ...ctx, id });
   });
