@@ -3,10 +3,9 @@ import { validateBody } from '../lib/validate.js';
 import { likeTrackSchema } from '../validators/trackValidator.js';
 import * as trackService from '../services/trackService.js';
 import { requireAuth } from '../middlewares/auth.js';
-import { createError } from '../lib/response.js';
+import { createError, jsonResponse } from '../lib/response.js';
 
 export const trackRoutes = new Elysia({ prefix: '/api/track' })
-
   // ✅ Like un morceau
   .post('/like', async ctx => {
     const auth = await requireAuth(ctx);
@@ -26,22 +25,18 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
     return await trackService.getLikedTracks(ctx);
   })
 
-  // ✅ Supprime un morceau liké
+  // ✅ Supprime un morceau liké (unlike)
   .delete('/like/:trackId', async ctx => {
     const trackIdParam = ctx.params?.trackId;
+    const parsedId = parseInt(trackIdParam, 10);
 
-    console.log('[DELETE] Paramètre reçu :', trackIdParam); // ➕ Debug temporaire
-
-    // Sécurisation parsing ID
-    if (!trackIdParam || isNaN(parseInt(trackIdParam))) {
-      console.warn('❌ Paramètre trackId absent ou invalide :', trackIdParam);
-      return createError('ID invalide', 400);
+    if (!trackIdParam || isNaN(parsedId) || parsedId <= 0) {
+      console.warn('❌ Paramètre DELETE trackId invalide :', trackIdParam);
+      return jsonResponse({ error: 'ID invalide (fallback)' }, 400);
     }
-
-    const id = parseInt(trackIdParam, 10);
 
     const auth = await requireAuth(ctx);
     if (auth !== true) return auth;
 
-    return await trackService.unlikeTrack({ ...ctx, id });
+    return await trackService.unlikeTrack({ ...ctx, id: parsedId });
   });
