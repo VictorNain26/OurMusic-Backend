@@ -21,16 +21,17 @@ try {
 }
 
 const app = new Elysia()
-  // 🔒 Configuration CORS
+  // 🔒 Configuration CORS stricte et fiable
   .use(
     cors({
-      origin: env.ALLOWED_ORIGINS, // Assurez-vous que c'est l'URL du frontend
-      credentials: true, // Autoriser l'envoi des cookies et des tokens
-      methods: ['GET', 'POST', 'DELETE', 'OPTIONS'], // Bien inclure DELETE
+      origin: env.ALLOWED_ORIGINS,
+      credentials: true,
+      methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
+      exposedHeaders: ['Set-Cookie'],
     })
   )
-  // 🔑 Configuration JWT
+  // 🔑 JWT tokens + refresh cookie
   .use(
     jwt({
       name: 'jwt',
@@ -38,15 +39,15 @@ const app = new Elysia()
       exp: '15m',
     })
   )
-  // 🧑 Middleware d'injection utilisateur
+  // 🧑 Middleware utilisateur injecté dynamiquement
   .use(userContext())
 
-  // 🚦 Routes
+  // ✅ Routes fonctionnelles
   .use(authRoutes)
   .use(trackRoutes)
   .use(spotifyRoutes)
 
-  // 🚨 Gestion centralisée des erreurs
+  // 🚨 Gestion d'erreurs globale
   .onError(({ error }) => {
     console.error('[Global Error]', error);
     return new Response(JSON.stringify({ error: 'Erreur interne du serveur' }), {
@@ -55,7 +56,7 @@ const app = new Elysia()
     });
   })
 
-  // 🚀 Démarrage du serveur
+  // 🚀 Lancement serveur
   .listen(parseInt(env.PORT));
 
 console.log(`✅ Elysia server listening on http://localhost:${env.PORT}`);

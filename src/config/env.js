@@ -1,7 +1,7 @@
 export const env = {
   PORT: Bun.env.PORT || 3000,
   JWT_SECRET: Bun.env.JWT_SECRET,
-  ALLOWED_ORIGINS: [/https:\/\/ourmusic\.fr$/, /https:\/\/ourmusic-api\.ovh$/],
+  ALLOWED_ORIGINS: ['https://ourmusic.fr', 'https://ourmusic-api.ovh'],
 };
 
 // ✅ Vérification stricte des variables d'environnement essentielles

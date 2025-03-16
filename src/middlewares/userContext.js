@@ -1,13 +1,12 @@
-// src/middlewares/userContext.js
 import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
 export function userContext() {
   return app => {
     app.onRequest(async ctx => {
-      const token =
-        ctx.request.headers.get('Authorization')?.replace('Bearer ', '').trim() ||
-        ctx.cookie?.refresh?.value;
+      const headerToken = ctx.request.headers.get('Authorization')?.replace('Bearer ', '').trim();
+      const cookieToken = ctx.cookie?.refresh?.value;
+      const token = headerToken || cookieToken;
 
       if (token) {
         try {
@@ -21,16 +20,13 @@ export function userContext() {
             .limit(1)
             .then(r => r[0]);
 
-          if (user) {
-            ctx.user = user;
-          }
+          if (user) ctx.user = user;
         } catch (err) {
           console.warn('[JWT Decode Error]', err.message);
         }
       }
     });
 
-    // IMPORTANT : retourner l'instance de l'application
     return app;
   };
 }
