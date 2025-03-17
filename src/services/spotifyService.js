@@ -15,13 +15,12 @@ import { delay, ensureDirectoryExists, fileExists, runCommand } from '../utils/f
 import path from 'path';
 import axios from 'axios';
 
-// 🎯 Scraping depuis HypeMachine avec enrichissement Spotify
 export async function handleSpotifyScrape(ctx, send) {
   try {
     const genres = ['indie+rock', 'pop', 'rock', 'electronica', 'hip+hop'];
     const excludedTags = ['trance', 'metal', 'dubstep'];
 
-    send({ message: `👤 Admin ${ctx.user.username} a lancé un scraping.` });
+    send({ message: `👤 Admin ${ctx.user?.username} a lancé un scraping.` });
 
     const scrapedTracks = await scrapeTracksForGenres(genres, 1, excludedTags);
     const token = await getSpotifyAccessToken();
@@ -29,13 +28,27 @@ export async function handleSpotifyScrape(ctx, send) {
 
     for (const genre of genres) {
       const tracks = scrapedTracks[genre] || [];
+      send({ message: `📦 ${tracks.length} morceaux scrappés pour ${genre}` });
+
       const uris = [];
 
       for (const track of tracks) {
+        if (!track?.artist || !track?.title) continue;
+
         const uri = await searchTrackOnSpotify(track.artist, track.title, token);
-        if (uri) uris.push(uri);
-        await delay(500);
+        if (uri) {
+          uris.push(uri);
+          send({ message: `🔗 Trouvé : ${track.artist} - ${track.title}` });
+        } else {
+          send({ message: `❌ Introuvable sur Spotify : ${track.artist} - ${track.title}` });
+        }
+
+        await delay(300); // plus fluide
       }
+
+      send({
+        message: `🎯 ${uris.length}/${tracks.length} morceaux trouvés sur Spotify pour ${genre}`,
+      });
 
       const playlistName = `OurMusic - ${genre}`;
       let playlist = userPlaylists.find(p => p.name?.toLowerCase() === playlistName.toLowerCase());
@@ -43,7 +56,11 @@ export async function handleSpotifyScrape(ctx, send) {
       if (!playlist) {
         const res = await axios.post(
           `https://api.spotify.com/v1/users/${process.env.SPOTIFY_USER_ID}/playlists`,
-          { name: playlistName, description: `Auto playlist pour ${genre}`, public: true },
+          {
+            name: playlistName,
+            description: `Auto playlist pour ${genre}`,
+            public: true,
+          },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         playlist = res.data;
@@ -54,10 +71,12 @@ export async function handleSpotifyScrape(ctx, send) {
 
       await addTracksIfNotExist(playlist, uris, token, send);
       await trimPlaylist(playlist, token, send);
-      await delay(2000);
+      send({ message: `✅ Traitement terminé pour ${playlistName}` });
+
+      await delay(1000);
     }
 
-    send({ message: '✅ Scraping terminé.' });
+    send({ message: '🏁 Scraping complet terminé pour tous les genres.' });
   } catch (err) {
     console.error('[handleSpotifyScrape Error]', err);
     send({ error: 'Erreur serveur pendant le scraping Spotify' });
