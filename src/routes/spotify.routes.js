@@ -12,6 +12,7 @@ export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
   // 🎯 Scrape depuis HypeMachine et enrichissement Spotify
   .get('/scrape', async ctx => {
     const admin = await requireAdmin(ctx);
+    console.info('admin', admin);
     if (admin !== true) return admin;
 
     return new Response(
