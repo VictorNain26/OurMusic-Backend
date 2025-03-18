@@ -2,9 +2,12 @@ export function createSSEStream(handler) {
   return new ReadableStream({
     async start(controller) {
       const sendEvent = data => {
-        controller.enqueue(`data: ${JSON.stringify({ pub: data })}\n\n`);
+        const json = JSON.stringify({ pub: data });
+        controller.enqueue(`data: ${json}\n\n`);
+        console.log('[SSE]', json);
       };
 
+      // Envoi d’un événement de connexion
       controller.enqueue(`data: ${JSON.stringify({ connect: { time: Date.now() } })}\n\n`);
 
       const heartbeat = setInterval(() => {
@@ -19,6 +22,7 @@ export function createSSEStream(handler) {
       } finally {
         clearInterval(heartbeat);
         controller.close();
+        console.log('[SSE] Stream closed');
       }
     },
   });

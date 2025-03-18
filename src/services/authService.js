@@ -1,19 +1,23 @@
+// src/services/authService.js
 import { db, schema } from '../db/index.js';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { logInfo, logError } from '../config/logger.js';
 
-// ➡️ Création de l'utilisateur admin à l'initialisation
+// ➕ Crée l'utilisateur administrateur à l'initialisation
 export async function createAdminUser() {
   const { ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD } = Bun.env;
-  if (!ADMIN_EMAIL || !ADMIN_USERNAME || !ADMIN_PASSWORD) return;
+
+  if (!ADMIN_EMAIL || !ADMIN_USERNAME || !ADMIN_PASSWORD) {
+    logWarn('Variables ADMIN_* manquantes — admin non créé.');
+    return;
+  }
 
   try {
     const existing = await getUserByEmail(ADMIN_EMAIL);
     if (existing) return;
 
     const hashedPassword = await hashPassword(ADMIN_PASSWORD);
-
     await db.insert(schema.users).values({
       username: ADMIN_USERNAME,
       email: ADMIN_EMAIL,
@@ -21,16 +25,17 @@ export async function createAdminUser() {
       role: 'admin',
     });
 
-    console.log('✅ Utilisateur admin créé.');
+    logInfo('✅ Utilisateur admin créé avec succès.');
   } catch (error) {
-    console.error('[createAdminUser Error]', error);
+    logError('[createAdminUser Error]', error);
     throw error;
   }
 }
 
+// ➕ Inscription sécurisée d'un utilisateur
 export async function registerUser({ username, email, password }) {
   if (!username || !email || !password) {
-    throw new Error('Tous les champs sont requis');
+    throw new Error('Champs requis manquants');
   }
 
   const existing = await getUserByEmail(email);
@@ -44,9 +49,10 @@ export async function registerUser({ username, email, password }) {
     .values({ username, email, password: hashed })
     .returning();
 
-  return user;
+  return sanitizeUser(user);
 }
 
+// 🔐 Authentifie un utilisateur (login sécurisé)
 export async function loginUser({ email, password }) {
   if (!email || !password) {
     throw new Error('Champs requis manquants');
@@ -57,31 +63,43 @@ export async function loginUser({ email, password }) {
     throw new Error('Identifiants invalides');
   }
 
-  return user;
+  return sanitizeUser(user);
 }
 
+// 🧼 Retire les infos sensibles du user
 export function sanitizeUser(user) {
   const { password, ...safeUser } = user;
   return safeUser;
 }
 
-// 🔧 Helpers internes
-
-async function getUserByEmail(email) {
+// 🔐 Récupère l’utilisateur depuis son ID (auth refresh ou /me)
+export async function getUserById(id) {
   const user = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.id, id))
+    .limit(1)
+    .then(res => res[0]);
+
+  return user ? sanitizeUser(user) : null;
+}
+
+// 🔒 Cherche un utilisateur par email (usage interne uniquement)
+async function getUserByEmail(email) {
+  return await db
     .select()
     .from(schema.users)
     .where(eq(schema.users.email, email))
     .limit(1)
     .then(res => res[0]);
-
-  return user;
 }
 
+// 🔐 Hash sécurisé du mot de passe
 async function hashPassword(password) {
-  return await bcrypt.hash(password, 10);
+  return await bcrypt.hash(password, 12);
 }
 
+// 🔍 Compare un mot de passe brut et hashé
 async function comparePassword(plain, hashed) {
   return await bcrypt.compare(plain, hashed);
 }

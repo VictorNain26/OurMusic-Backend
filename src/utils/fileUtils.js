@@ -1,7 +1,6 @@
-import fs from 'fs/promises';
-import { Bun } from 'bun';
-
 // ✅ Vérifie et crée un dossier s'il n'existe pas, avec permissions adaptées
+import fs from 'fs/promises';
+
 export async function ensureDirectoryExists(dirPath) {
   try {
     await fs.access(dirPath);
@@ -13,19 +12,22 @@ export async function ensureDirectoryExists(dirPath) {
 }
 
 // ✅ Exécute une commande externe et retourne la sortie standard ou génère une erreur
-export async function runCommand(cmd, options = {}) {
-  const proc = Bun.spawn(cmd, { ...options, stdout: 'pipe', stderr: 'pipe' });
-  await proc.exited;
+export async function runCommand(cmdArray, options = {}) {
+  const proc = Bun.spawnSync(cmdArray, {
+    ...options,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
 
-  const stdoutText = proc.stdout ? await new Response(proc.stdout).text() : '';
-  const stderrText = proc.stderr ? await new Response(proc.stderr).text() : '';
+  const stdout = new TextDecoder().decode(proc.stdout).trim();
+  const stderr = new TextDecoder().decode(proc.stderr).trim();
 
-  if (stderrText.trim()) {
-    console.error('[runCommand Error]', stderrText.trim());
-    throw new Error(stderrText.trim());
+  if (proc.exitCode !== 0 || stderr) {
+    console.error('[runCommand Error]', stderr);
+    throw new Error(stderr || `Commande échouée avec code ${proc.exitCode}`);
   }
 
-  return stdoutText.trim();
+  return stdout;
 }
 
 // ✅ Attente asynchrone

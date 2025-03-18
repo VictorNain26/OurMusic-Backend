@@ -1,3 +1,4 @@
+// src/services/spotifyService.js
 import {
   getSpotifyAccessToken,
   getOurMusicPlaylists,
@@ -43,7 +44,7 @@ export async function handleSpotifyScrape(ctx, send) {
           send({ message: `❌ Introuvable sur Spotify : ${track.artist} - ${track.title}` });
         }
 
-        await delay(300); // plus fluide
+        await delay(300);
       }
 
       send({
@@ -99,6 +100,7 @@ export async function handleSpotifySyncAll(ctx, send) {
     }
 
     for (const playlist of playlists) {
+      send({ message: `▶ Synchronisation de ${playlist.name}` });
       await syncSinglePlaylist(playlist, token, send);
       await delay(5000);
     }
@@ -127,6 +129,7 @@ export async function handleSpotifySyncById(ctx, send, playlistId) {
       return;
     }
 
+    send({ message: `▶ Synchronisation de ${playlist.name}` });
     await syncSinglePlaylist(playlist, token, send);
     await runCommand(['chmod', '-R', '777', process.env.PLAYLIST_PATH]);
 
@@ -137,7 +140,6 @@ export async function handleSpotifySyncById(ctx, send, playlistId) {
   }
 }
 
-// 🔄 Fonction de synchronisation unique
 async function syncSinglePlaylist(playlist, token, send) {
   try {
     const playlistDirPath = await createPlaylistDirectory(playlist);
@@ -145,10 +147,10 @@ async function syncSinglePlaylist(playlist, token, send) {
     const syncFile = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
 
     if (await fileExists(syncFile)) {
-      send({ message: `➡ Synchronisation existante pour ${playlist.name}` });
+      send({ message: `➡ Fichier de sync trouvé : ${syncFile}` });
       await syncPlaylistFile(syncFile, playlistDirPath, send);
     } else {
-      send({ message: `📂 Création du fichier de synchronisation pour ${playlist.name}` });
+      send({ message: `📂 Création du fichier de sync : ${syncFile}` });
       await createSyncFile(playlist, playlistDirPath, send);
       await syncPlaylistFile(syncFile, playlistDirPath, send);
     }
@@ -158,7 +160,6 @@ async function syncSinglePlaylist(playlist, token, send) {
   }
 }
 
-// ➕ Ajout des morceaux absents
 async function addTracksIfNotExist(playlist, uris, token, send) {
   try {
     const existingUris = (
@@ -176,6 +177,8 @@ async function addTracksIfNotExist(playlist, uris, token, send) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       send({ message: `🎶 ${newUris.length} titres ajoutés à ${playlist.name}` });
+    } else {
+      send({ message: `✅ Aucun nouveau titre à ajouter dans ${playlist.name}` });
     }
   } catch (err) {
     console.error('[addTracksIfNotExist Error]', err);
