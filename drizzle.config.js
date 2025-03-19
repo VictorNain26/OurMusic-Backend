@@ -1,8 +1,8 @@
 export default {
   schema: './src/db/schema.js',
-  out: './drizzle/migrations',
-  dialect: 'postgresql',
+  out: './drizzle',
+  driver: 'pg',
   dbCredentials: {
-    url: process.env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL,
   },
 };

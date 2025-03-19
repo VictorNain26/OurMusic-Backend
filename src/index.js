@@ -2,15 +2,11 @@ import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { env } from './config/env.js';
 import { initDatabase } from './db.js';
-import { createAdminUser } from './services/authService.js';
-
-import { authRoutes } from './routes/auth.routes.js';
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
 import betterAuthView from './utils/auth/auth-view.js';
 
 await initDatabase();
-await createAdminUser();
 
 const app = new Elysia()
   .use(
@@ -22,9 +18,8 @@ const app = new Elysia()
       exposedHeaders: ['Set-Cookie'],
     })
   )
-  .all('/api/auth/*', betterAuthView) // Better Auth view
+  .all('/api/auth/*', betterAuthView) // Better Auth endpoints
 
-  .use(authRoutes)
   .use(trackRoutes)
   .use(spotifyRoutes)
 

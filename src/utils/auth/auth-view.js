@@ -1,4 +1,3 @@
-import { Context } from 'elysia';
 import { auth } from './auth.js';
 
 const betterAuthView = context => {

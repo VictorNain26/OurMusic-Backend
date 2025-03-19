@@ -1,8 +1,5 @@
 import { pgTable, serial, text, timestamp, integer, varchar } from 'drizzle-orm/pg-core';
 
-/**
- * ✅ Utilisateur unique (Better Auth + application)
- */
 export const user = pgTable('user', {
   id: serial('id').primaryKey(),
   email: text('email').notNull().unique(),
@@ -12,9 +9,6 @@ export const user = pgTable('user', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-/**
- * 💾 Table des morceaux likés (relation sur user.id)
- */
 export const likedTracks = pgTable('liked_tracks', {
   id: serial('id').primaryKey(),
   title: text('title').notNull(),
@@ -26,9 +20,6 @@ export const likedTracks = pgTable('liked_tracks', {
     .notNull(),
 });
 
-/**
- * 📦 Tables Better Auth (liées à user)
- */
 export const session = pgTable('session', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').references(() => user.id, { onDelete: 'cascade' }),
