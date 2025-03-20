@@ -10,7 +10,16 @@ until pg_isready -h db -p 5432; do
   echo -e "${YELLOW}⏳ Base de données pas encore prête, nouvelle tentative dans 2s...${NC}"
   sleep 2
 done
+
 echo -e "${GREEN}✅ Base de données accessible.${NC}"
+
+echo -e "${YELLOW}📂 Vérification du fichier de configuration drizzle.config.js...${NC}"
+if grep -q "dialect" drizzle.config.js; then
+  echo -e "${GREEN}✅ Paramètre 'dialect' trouvé dans drizzle.config.js.${NC}"
+else
+  echo -e "${RED}❌ 'dialect' manquant dans drizzle.config.js. Ajoutez 'dialect: \"postgresql\"'.${NC}"
+  exit 1
+fi
 
 echo -e "${YELLOW}🔍 Vérification de la présence du package drizzle-orm...${NC}"
 if [ -d "node_modules/drizzle-orm" ]; then
