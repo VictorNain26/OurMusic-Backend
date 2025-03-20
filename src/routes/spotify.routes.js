@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { requireAdmin } from '../middlewares/auth.js';
+import { requireAdmin } from '../middlewares/auth-middleware.js';
 import { createSSEStream } from '../utils/sse.js';
 import {
   handleSpotifyScrape,

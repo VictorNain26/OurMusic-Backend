@@ -2,7 +2,7 @@ import { Elysia } from 'elysia';
 import { validateBody } from '../lib/validate.js';
 import { likeTrackSchema } from '../validators/trackValidator.js';
 import * as trackService from '../services/trackService.js';
-import { requireAuth } from '../middlewares/auth.js';
+import { requireAuth } from '../middlewares/auth-middleware.js';
 import { createError, jsonResponse } from '../lib/response.js';
 
 export const trackRoutes = new Elysia({ prefix: '/api/track' })
