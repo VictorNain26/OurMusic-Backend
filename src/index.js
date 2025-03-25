@@ -11,7 +11,7 @@ await initDatabase();
 const app = new Elysia()
   .use(
     cors({
-      origin: ['https://ourmusic.fr', 'https://ourmusic-api.ovh'],
+      origin: env.ALLOWED_ORIGINS,
       credentials: true,
       methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type'],
