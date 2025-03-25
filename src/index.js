@@ -4,7 +4,7 @@ import { env } from './config/env.js';
 import { initDatabase } from './db.js';
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
-import betterAuthView from './utils/auth/auth-view.js';
+import { auth } from './utils/auth/auth.js';
 
 await initDatabase();
 
@@ -18,7 +18,7 @@ const app = new Elysia()
       exposedHeaders: ['Set-Cookie'],
     })
   )
-  .all('/api/auth/*', betterAuthView)
+  .use(auth)
   .use(trackRoutes)
   .use(spotifyRoutes)
   .onError(({ error }) => {
