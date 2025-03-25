@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
-import { BetterAuth } from 'better-auth';
+import BetterAuth from 'better-auth';
 import { env } from './config/env.js';
 import { initDatabase, db } from './db.js';
 import { user, session, account, verification } from './db/schema.js';
