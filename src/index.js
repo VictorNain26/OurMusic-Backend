@@ -11,7 +11,7 @@ await initDatabase();
 const app = new Elysia()
   .use(
     cors({
-      origin: env.ALLOWED_ORIGINS,
+      origin: ,
       credentials: true,
       methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type'],
