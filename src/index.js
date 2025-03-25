@@ -18,7 +18,18 @@ const app = new Elysia()
       exposedHeaders: ['Set-Cookie'],
     })
   )
-  .use(auth)
+  .use(auth.handler)
+  .use(
+    auth.macro({
+      auth: {
+        async resolve({ request, error }) {
+          const session = await auth.api.getSession({ headers: request.headers });
+          if (!session) return error(401, 'Non authentifié');
+          return session.user;
+        },
+      },
+    })
+  )
   .use(trackRoutes)
   .use(spotifyRoutes)
   .onError(({ error }) => {
