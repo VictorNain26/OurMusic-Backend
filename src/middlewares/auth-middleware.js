@@ -5,7 +5,7 @@ export const userMiddleware = async ctx => {
 
   if (!session) {
     ctx.set.status = 401;
-    return { success: 'error', message: 'Unauthorized Access' };
+    return { success: 'error', message: 'Non authentifié' };
   }
 
   return {
@@ -13,8 +13,6 @@ export const userMiddleware = async ctx => {
     session: session.session,
   };
 };
-
-export const userInfo = (user, session) => ({ user, session });
 
 export async function requireAuth(ctx) {
   const session = await auth.api.getSession({ headers: ctx.request.headers });

@@ -18,11 +18,9 @@ const app = new Elysia()
       exposedHeaders: ['Set-Cookie'],
     })
   )
-  .all('/api/auth/*', betterAuthView) // Better Auth endpoints
-
+  .all('/api/auth/*', betterAuthView)
   .use(trackRoutes)
   .use(spotifyRoutes)
-
   .onError(({ error }) => {
     console.error('[Global Error]', error);
     return new Response(JSON.stringify({ error: 'Erreur interne du serveur' }), {
