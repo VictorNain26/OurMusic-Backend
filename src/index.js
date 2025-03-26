@@ -1,9 +1,8 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
-
 import { env } from './config/env.js';
 import { initDatabase } from './db.js';
-import { betterAuthPlugin } from './config/auth.config.js';
+import betterAuthView from './utils/auth-view.js';
 
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
@@ -20,11 +19,10 @@ const app = new Elysia()
       exposedHeaders: ['Set-Cookie'],
     })
   )
+  // 🔐 Better Auth handler monté comme view personnalisée
+  .all('/api/auth/*', betterAuthView)
 
-  // 🔐 Plugin Better Auth (handler + macro)
-  .use(betterAuthPlugin)
-
-  // 📦 Routes métiers
+  // 📦 Vos routes métier
   .use(trackRoutes)
   .use(spotifyRoutes)
 
