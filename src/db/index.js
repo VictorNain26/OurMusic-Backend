@@ -1,8 +1,6 @@
-// src/db/index.js
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema.js';
-import { logInfo, logError } from '../config/logger.js';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -16,9 +14,9 @@ export const db = drizzle(pool, { schema });
 export async function initDatabase() {
   try {
     await pool.query('SELECT 1');
-    logInfo('✅ Connexion PostgreSQL établie avec succès.');
+    console.log('✅ Connexion PostgreSQL établie avec succès.');
   } catch (err) {
-    logError('❌ Erreur de connexion à PostgreSQL :', err);
+    console.error('❌ Erreur de connexion à PostgreSQL :', err);
     throw new Error('Connexion à PostgreSQL impossible.');
   }
   return db;

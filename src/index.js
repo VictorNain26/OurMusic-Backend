@@ -6,7 +6,7 @@ import { elysiaRequestId } from 'elysia-request-id';
 import { logysia } from 'logysia';
 
 import { env } from './config/env.js';
-import { initDatabase } from './db.js';
+import { initDatabase } from './db/index.js';
 import { betterAuthPlugin } from './config/auth.config.js';
 import { rateLimiter } from './middlewares/rateLimiter.js';
 
