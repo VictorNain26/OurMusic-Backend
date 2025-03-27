@@ -5,6 +5,7 @@ export const env = {
   BETTER_AUTH_SECRET: Bun.env.BETTER_AUTH_SECRET,
   GOOGLE_CLIENT_ID: Bun.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: Bun.env.GOOGLE_CLIENT_SECRET,
+  FRONTEND_BASE_URL: Bun.env.FRONTEND_BASE_URL,
 };
 
 // ✅ Vérification stricte des variables Better Auth

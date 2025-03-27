@@ -51,6 +51,9 @@ const app = new Elysia()
   })
 
   // Démarrage du serveur
-  .listen(env.PORT);
+  .listen({
+    port: env.PORT,
+    hostname: '0.0.0.0',
+  });
 
 console.log(`✅ OurMusic Backend lancé sur http://localhost:${env.PORT}`);

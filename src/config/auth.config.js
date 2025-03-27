@@ -1,3 +1,6 @@
+import { config } from 'dotenv';
+config();
+
 import { betterAuth } from 'better-auth';
 import { Elysia } from 'elysia';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
