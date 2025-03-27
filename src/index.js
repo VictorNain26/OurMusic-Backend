@@ -1,9 +1,7 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { elysiaHelmet } from 'elysiajs-helmet';
-import { compression } from 'elysia-compression';
-import { elysiaRequestId } from 'elysia-request-id';
-import { logysia } from 'logysia';
+// import { compression } from 'elysia-compression'; // Attendre et voir quand une version compatible est dispo
 
 import { env } from './config/env.js';
 import { initDatabase } from './db/index.js';
@@ -20,13 +18,7 @@ const app = new Elysia()
   .use(elysiaHelmet())
 
   // Compression des réponses (gzip, brotli)
-  .use(compression())
-
-  // Ajout d'un identifiant de requête (utile pour les logs, debugging)
-  .use(elysiaRequestId())
-
-  // Logger HTTP simple et lisible
-  .use(logysia())
+  // .use(compression())
 
   // Politique CORS sécurisée
   .use(

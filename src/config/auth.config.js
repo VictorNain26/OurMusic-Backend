@@ -2,7 +2,7 @@ import { BetterAuth } from 'better-auth';
 import { Elysia } from 'elysia';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 
-import { db } from '../db.js';
+import { db } from '../db/index.js';
 import { user, session, account, verification } from '../db/schema.js';
 import { env } from './env.js';
 import { sendMail } from '../services/mailerService.js';
@@ -59,18 +59,16 @@ export const auth = BetterAuth({
 });
 
 // ✅ Plugin Elysia encapsulant Better Auth + macro d’authentification
-export const betterAuthPlugin = new Elysia({ name: 'better-auth' })
-  .mount(auth.handler)
-  .macro({
-    auth: {
-      async resolve({ error, request: { headers } }) {
-        const session = await auth.api.getSession({ headers });
-        if (!session) return error(401, 'Non authentifié');
+export const betterAuthPlugin = new Elysia({ name: 'better-auth' }).mount(auth.handler).macro({
+  auth: {
+    async resolve({ error, request: { headers } }) {
+      const session = await auth.api.getSession({ headers });
+      if (!session) return error(401, 'Non authentifié');
 
-        return {
-          user: session.user,
-          session: session.session,
-        };
-      },
+      return {
+        user: session.user,
+        session: session.session,
+      };
     },
-  });
+  },
+});
