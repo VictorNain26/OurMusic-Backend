@@ -14,13 +14,8 @@ import { spotifyRoutes } from './routes/spotify.routes.js';
 await initDatabase();
 
 const app = new Elysia()
-  // Sécurité HTTP
   .use(elysiaHelmet())
-
-  // Compression des réponses (gzip, brotli)
   // .use(compression())
-
-  // Politique CORS sécurisée
   .use(
     cors({
       origin: env.ALLOWED_ORIGINS,
@@ -30,18 +25,10 @@ const app = new Elysia()
       exposedHeaders: ['Set-Cookie'],
     })
   )
-
-  // Rate limiting (anti-abus)
   .use(rateLimiter())
-
-  // Authentification Better Auth
   .use(betterAuthPlugin)
-
-  // Routes fonctionnelles principales
   .use(trackRoutes)
   .use(spotifyRoutes)
-
-  // Gestion globale des erreurs
   .onError(({ error }) => {
     console.error('[Global Error]', error);
     return new Response(JSON.stringify({ error: 'Erreur interne du serveur' }), {
@@ -49,8 +36,6 @@ const app = new Elysia()
       headers: { 'Content-Type': 'application/json' },
     });
   })
-
-  // Démarrage du serveur
   .listen({
     port: env.PORT,
     hostname: '0.0.0.0',

@@ -14,7 +14,6 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "dotenv-cli": "^8.0.0",
     "eslint": "^9.22.0",
     "prettier": "^3.5.3"
   },
@@ -24,7 +23,6 @@
     "bcryptjs": "^3.0.2",
     "better-auth": "^1.2.5",
     "cheerio": "^1.0.0",
-    "dotenv": "^16.4.7",
     "drizzle-kit": "^0.30.5",
     "drizzle-orm": "^0.40.0",
     "elysia": "^1.2.25",
