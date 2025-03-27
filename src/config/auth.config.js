@@ -1,4 +1,4 @@
-import { BetterAuth } from 'better-auth';
+import { betterAuth } from 'better-auth';
 import { Elysia } from 'elysia';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 
@@ -7,7 +7,7 @@ import { user, session, account, verification } from '../db/schema.js';
 import { env } from './env.js';
 import { sendMail } from '../services/mailerService.js';
 
-export const auth = BetterAuth({
+export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   db: drizzleAdapter(db, {
     provider: 'pg',

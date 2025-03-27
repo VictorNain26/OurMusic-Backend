@@ -22,7 +22,7 @@
     "@elysiajs/cors": "^1.2.0",
     "axios": "^1.8.2",
     "bcryptjs": "^3.0.2",
-    "better-auth": "^1.2.4",
+    "better-auth": "^1.2.5",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.7",
     "drizzle-kit": "^0.30.5",
@@ -30,6 +30,7 @@
     "elysia": "^1.2.25",
     "elysia-compression": "^0.0.7",
     "elysiajs-helmet": "^1.0.2",
+    "nodemailer": "^6.10.0",
     "pg": "^8.14.0",
     "valibot": "^1.0.0-rc.4"
   }

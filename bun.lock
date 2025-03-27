@@ -7,7 +7,7 @@
         "@elysiajs/cors": "^1.2.0",
         "axios": "^1.8.2",
         "bcryptjs": "^3.0.2",
-        "better-auth": "^1.2.4",
+        "better-auth": "^1.2.5",
         "cheerio": "^1.0.0",
         "dotenv": "^16.4.7",
         "drizzle-kit": "^0.30.5",
@@ -15,6 +15,7 @@
         "elysia": "^1.2.25",
         "elysia-compression": "^0.0.7",
         "elysiajs-helmet": "^1.0.2",
+        "nodemailer": "^6.10.0",
         "pg": "^8.14.0",
         "valibot": "^1.0.0-rc.4",
       },
@@ -372,6 +373,8 @@
     "nanostores": ["nanostores@0.11.4", "", {}, "sha512-k1oiVNN4hDK8NcNERSZLQiMfRzEGtfnvZvdBvey3SQbgn8Dcrk0h1I6vpxApjb10PFUflZrgJ2WEZyJQ+5v7YQ=="],
 
     "natural-compare": ["natural-compare@1.4.0", "", {}, "sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw=="],
+
+    "nodemailer": ["nodemailer@6.10.0", "", {}, "sha512-SQ3wZCExjeSatLE/HBaXS5vqUOQk6GtBdIIKxiFdmm01mOQZX/POJkO3SUX1wDiYcwUOJwT23scFSC9fY2H8IA=="],
 
     "nth-check": ["nth-check@2.1.1", "", { "dependencies": { "boolbase": "^1.0.0" } }, "sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w=="],
 

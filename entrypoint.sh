@@ -10,7 +10,6 @@ until pg_isready -h db -p 5432; do
   echo -e "${YELLOW}⏳ Base de données pas encore prête, nouvelle tentative dans 2s...${NC}"
   sleep 2
 done
-
 echo -e "${GREEN}✅ Base de données accessible.${NC}"
 
 echo -e "${YELLOW}📂 Vérification du fichier de configuration drizzle.config.js...${NC}"
@@ -34,6 +33,15 @@ if bun run db:push; then
   echo -e "${GREEN}✅ Migrations appliquées avec succès.${NC}"
 else
   echo -e "${RED}❌ Erreur lors de l'application des migrations Drizzle.${NC}"
+  exit 1
+fi
+
+# 🌱 Seed de l'admin uniquement si nécessaire
+echo -e "${YELLOW}🌱 Vérification/Création de l'utilisateur admin...${NC}"
+if bun run seed:admin; then
+  echo -e "${GREEN}✅ Vérification/création admin terminée avec succès.${NC}"
+else
+  echo -e "${RED}❌ Erreur lors de la création de l'utilisateur admin.${NC}"
   exit 1
 fi
 
