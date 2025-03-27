@@ -1,32 +1,34 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
-import { env } from './config/env.js';
-import { initDatabase } from './db.js';
-import { betterAuthPlugin } from './config/auth.config.js';
 import { elysiaHelmet } from 'elysiajs-helmet';
-import { rateLimiter } from './middlewares/rateLimiter.js';
-import { trackRoutes } from './routes/track.routes.js';
-import { spotifyRoutes } from './routes/spotify.routes.js';
 import { compression } from 'elysia-compression';
 import { elysiaRequestId } from 'elysia-request-id';
 import { logysia } from 'logysia';
 
+import { env } from './config/env.js';
+import { initDatabase } from './db.js';
+import { betterAuthPlugin } from './config/auth.config.js';
+import { rateLimiter } from './middlewares/rateLimiter.js';
+
+import { trackRoutes } from './routes/track.routes.js';
+import { spotifyRoutes } from './routes/spotify.routes.js';
+
 await initDatabase();
 
 const app = new Elysia()
-  // 🛡 Sécurité HTTP avec Helmet
+  // Sécurité HTTP
   .use(elysiaHelmet())
 
-  // 🧼 Compression des réponses HTTP (gzip/brotli)
+  // Compression des réponses (gzip, brotli)
   .use(compression())
 
-  // 🧩 Ajout d'un X-Request-ID pour chaque requête
+  // Ajout d'un identifiant de requête (utile pour les logs, debugging)
   .use(elysiaRequestId())
 
-  // 📜 Logger HTTP lisible
+  // Logger HTTP simple et lisible
   .use(logysia())
 
-  // 🌐 CORS sécurisé
+  // Politique CORS sécurisée
   .use(
     cors({
       origin: env.ALLOWED_ORIGINS,
@@ -37,17 +39,17 @@ const app = new Elysia()
     })
   )
 
-  // 🛡 Rate Limiting basique maison (anti-abus)
+  // Rate limiting (anti-abus)
   .use(rateLimiter())
 
-  // 🔐 Authentification avec Better Auth
+  // Authentification Better Auth
   .use(betterAuthPlugin)
 
-  // 📦 Routes métier
+  // Routes fonctionnelles principales
   .use(trackRoutes)
   .use(spotifyRoutes)
 
-  // 🧯 Gestion globale des erreurs
+  // Gestion globale des erreurs
   .onError(({ error }) => {
     console.error('[Global Error]', error);
     return new Response(JSON.stringify({ error: 'Erreur interne du serveur' }), {
@@ -56,6 +58,7 @@ const app = new Elysia()
     });
   })
 
+  // Démarrage du serveur
   .listen(env.PORT);
 
 console.log(`✅ OurMusic Backend lancé sur http://localhost:${env.PORT}`);
