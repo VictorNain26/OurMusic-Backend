@@ -28,6 +28,7 @@
     "drizzle-kit": "^0.30.5",
     "drizzle-orm": "^0.40.0",
     "elysia": "^1.2.25",
+    "elysiajs-helmet": "^1.0.2",
     "pg": "^8.14.0",
     "valibot": "^1.0.0-rc.4"
   }
