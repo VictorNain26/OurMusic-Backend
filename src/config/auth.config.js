@@ -1,4 +1,3 @@
-// src/config/auth.config.js
 import { betterAuth } from 'better-auth';
 import { Elysia } from 'elysia';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
@@ -8,16 +7,19 @@ import { user, session, account, verification } from '../db/schema.js';
 import { env } from './env.js';
 import { sendMail } from '../services/mailerService.js';
 
-const baseAuth = betterAuth({
+const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
-  baseURL: env.BETTER_AUTH_URL, // ✅ Corrige l’erreur request?.headers.get
+  baseURL: env.BETTER_AUTH_URL,
+
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema: { user, session, verification, account },
   }),
 
-  emailAndPassword: { enabled: true },
-  requireEmailVerification: false,
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: false,
+  },
 
   socialProviders: {
     google: {
@@ -28,30 +30,27 @@ const baseAuth = betterAuth({
 
   notifications: {
     async email({ type, email, token }) {
-      const baseUrl = env.FRONTEND_BASE_URL || 'https://ourmusic.fr';
-
-      const routes = {
-        verification: `${baseUrl}/auth/verify?token=${token}`,
-        reset_password: `${baseUrl}/auth/reset-password?token=${token}`,
+      const base = env.FRONTEND_BASE_URL;
+      const urls = {
+        verification: `${base}/auth/verify?token=${token}`,
+        reset_password: `${base}/auth/reset-password?token=${token}`,
       };
 
       const subjects = {
         verification: '✅ Vérifie ton adresse OurMusic',
-        reset_password: '🔐 Réinitialisation du mot de passe OurMusic',
+        reset_password: '🔐 Réinitialisation de mot de passe',
       };
 
       const htmls = {
         verification: `
-          <h2>Bienvenue sur OurMusic 🎶</h2>
-          <p>Clique ci-dessous pour vérifier ton adresse email :</p>
-          <p><a href="${routes.verification}" target="_blank">Vérifier mon adresse</a></p>
-          <p>Ce lien est valable 24h.</p>
+          <h2>Bienvenue 🎉</h2>
+          <p>Clique ici pour vérifier ton email :</p>
+          <a href="${urls.verification}">Vérifier mon adresse</a>
         `,
         reset_password: `
-          <h2>Mot de passe oublié ?</h2>
-          <p>Clique ici pour réinitialiser ton mot de passe :</p>
-          <p><a href="${routes.reset_password}" target="_blank">Réinitialiser mon mot de passe</a></p>
-          <p>Ce lien est valable 1h.</p>
+          <h2>Réinitialise ton mot de passe</h2>
+          <p>Tu as demandé un nouveau mot de passe ? Clique ici :</p>
+          <a href="${urls.reset_password}">Réinitialiser</a>
         `,
       };
 
@@ -64,16 +63,12 @@ const baseAuth = betterAuth({
   },
 });
 
-export const betterAuthPlugin = new Elysia({ name: 'better-auth' }).use(baseAuth.handler).macro({
+export const betterAuthPlugin = new Elysia({ name: 'better-auth' }).use(auth.plugin).macro({
   auth: {
-    async resolve({ error, request }) {
-      const session = await baseAuth.api.getSession({ headers: request.headers });
+    async resolve({ request, error }) {
+      const session = await auth.api.getSession({ headers: request.headers });
       if (!session) return error(401, 'Non authentifié');
-
-      return {
-        user: session.user,
-        session: session.session,
-      };
+      return { user: session.user, session: session.session };
     },
   },
 });
