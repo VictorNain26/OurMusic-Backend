@@ -4,8 +4,8 @@ import { elysiaHelmet } from 'elysiajs-helmet';
 
 import { env } from './config/env.js';
 import { initDatabase } from './db/index.js';
-import { betterAuthPlugin } from './config/auth.config.js';
 import { rateLimiter } from './middlewares/rateLimiter.js';
+import betterAuthView from './libs/auth/auth-view.js';
 
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
@@ -24,7 +24,7 @@ const app = new Elysia()
     })
   )
   .use(rateLimiter())
-  .use(betterAuthPlugin)
+  .all('/auth/*', betterAuthView)
   .use(trackRoutes)
   .use(spotifyRoutes)
   .onError(({ error }) => {
