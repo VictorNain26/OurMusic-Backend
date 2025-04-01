@@ -22,7 +22,6 @@ app
     })
   )
   .use(rateLimiter())
-  .mount(auth.handler)
   .use(trackRoutes)
   .use(spotifyRoutes)
   .use(
@@ -32,6 +31,8 @@ app
       routePrefix: '/docs',
     })
   )
+  .mount('/auth', auth.handler)
+  .get('/', () => new Response("Bienvenue sur l'API OurMusic !", { status: 200 }))
   .onError(({ error }) => {
     console.error('[Global Error]', error);
     return new Response(JSON.stringify({ error: 'Erreur interne du serveur' }), {
