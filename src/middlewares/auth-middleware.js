@@ -1,11 +1,11 @@
-import { auth } from '../../utils/auth/auth';
+import { auth } from '../utils/auth/auth.js';
 
-export const userMiddleware = async () => {
-  const session = await auth.api.getSession({ headers: c.request.headers });
+export const authMiddleware = async ctx => {
+  const session = await auth.api.getSession({ headers: ctx.request.headers });
 
   if (!session) {
-    c.set.status = 401;
-    return { success: 'error', message: 'Accès non autorisé : token manquant' };
+    ctx.set.status = 401;
+    return { error: 'Non autorisé : session invalide' };
   }
 
   return {

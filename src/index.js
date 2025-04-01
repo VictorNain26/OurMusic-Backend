@@ -2,13 +2,10 @@ import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { elysiaHelmet } from 'elysiajs-helmet';
 import { env } from './config/env.js';
-import { initDatabase } from './db/index.js';
 import { rateLimiter } from './middlewares/rateLimiter.js';
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
 import betterAuthView from './utils/auth-view.js';
-
-await initDatabase();
 
 const app = new Elysia()
   .use(elysiaHelmet())
