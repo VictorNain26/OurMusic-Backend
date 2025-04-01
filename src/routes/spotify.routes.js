@@ -1,5 +1,5 @@
 import { Elysia } from 'elysia';
-import { auth } from '../plugins/auth.js';
+import { adminMiddleware } from '../middlewares/adminMiddleware.js';
 import { createSSEStream } from '../utils/sse.js';
 import {
   handleSpotifyScrape,
@@ -8,9 +8,7 @@ import {
 } from '../services/spotifyService.js';
 
 export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' }).guard(
-  auth.guard({
-    role: 'admin',
-  }),
+  adminMiddleware,
   app =>
     app
       .get(

@@ -1,11 +1,11 @@
 import { Elysia } from 'elysia';
-import { auth } from '../plugins/auth.js';
+import { userMiddleware } from '../middlewares/userMiddleware.js';
 import { validateBody } from '../lib/validate.js';
 import { likeTrackSchema } from '../validators/trackValidator.js';
 import * as trackService from '../services/trackService.js';
 import { jsonResponse } from '../lib/response.js';
 
-export const trackRoutes = new Elysia({ prefix: '/api/track' }).guard(auth.guard(), app =>
+export const trackRoutes = new Elysia({ prefix: '/api/track' }).guard(userMiddleware, app =>
   app
     .post('/like', async ctx => {
       const data = validateBody(likeTrackSchema, ctx.body);

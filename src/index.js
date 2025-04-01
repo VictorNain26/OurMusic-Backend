@@ -3,9 +3,10 @@ import { cors } from '@elysiajs/cors';
 import { elysiaHelmet } from 'elysiajs-helmet';
 import { env } from './config/env.js';
 import { rateLimiter } from './middlewares/rateLimiter.js';
+
+import betterAuthView from './lib/auth/auth-view.js';
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
-import { auth } from './plugins/auth.js';
 
 const app = new Elysia()
   .use(elysiaHelmet())
@@ -19,7 +20,7 @@ const app = new Elysia()
     })
   )
   .use(rateLimiter())
-  .use(auth)
+  .all('/api/auth/*', betterAuthView)
   .use(trackRoutes)
   .use(spotifyRoutes)
   .onError(({ error }) => {
