@@ -8,13 +8,15 @@ import { auth } from './lib/auth/auth.js';
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
 
-const app = new Elysia()
+const app = new Elysia();
+
+app
   .use(elysiaHelmet())
   .use(
     cors({
       origin: env.ALLOWED_ORIGINS,
       credentials: true,
-      methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
       exposedHeaders: ['Set-Cookie'],
     })
