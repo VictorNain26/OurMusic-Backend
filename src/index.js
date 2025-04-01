@@ -6,6 +6,7 @@ import { initDatabase } from './db/index.js';
 import { rateLimiter } from './middlewares/rateLimiter.js';
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
+import betterAuthView from './utils/auth-view.js';
 
 await initDatabase();
 
@@ -23,6 +24,7 @@ const app = new Elysia()
   .use(rateLimiter())
   .use(trackRoutes)
   .use(spotifyRoutes)
+  .all('/api/auth/*', betterAuthView)
   .onError(({ error }) => {
     console.error('[Global Error]', error);
     return new Response(JSON.stringify({ error: 'Erreur interne du serveur' }), {
