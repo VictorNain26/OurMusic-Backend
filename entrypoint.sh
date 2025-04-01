@@ -36,14 +36,5 @@ else
   exit 1
 fi
 
-# 🌱 Seed de l'admin uniquement si nécessaire
-echo -e "${YELLOW}🌱 Vérification/Création de l'utilisateur admin...${NC}"
-if bun run seed:admin; then
-  echo -e "${GREEN}✅ Vérification/création admin terminée avec succès.${NC}"
-else
-  echo -e "${RED}❌ Erreur lors de la création de l'utilisateur admin.${NC}"
-  exit 1
-fi
-
 echo -e "${YELLOW}🚀 Démarrage du serveur OurMusic Backend...${NC}"
 bun run start
