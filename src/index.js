@@ -24,14 +24,33 @@ app
   .use(rateLimiter())
   .use(trackRoutes)
   .use(spotifyRoutes)
+  .mount('/auth', auth.handler)
   .use(
     swagger({
-      title: 'OurMusic API Documentation',
-      version: '1.0.0',
-      routePrefix: '/docs',
+      path: '/swagger',
+      exclude: ['/auth'],
+      documentation: {
+        info: {
+          title: 'OurMusic API Documentation',
+          version: '1.0.0',
+          description: "Documentation de l'API OurMusic",
+        },
+        tags: [
+          { name: 'Track', description: 'Routes pour la gestion des morceaux' },
+          { name: 'Spotify', description: "Routes pour l'intégration Spotify" },
+        ],
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT',
+            },
+          },
+        },
+      },
     })
   )
-  .mount('/auth', auth.handler)
   .get('/', () => new Response("Bienvenue sur l'API OurMusic !", { status: 200 }))
   .onError(({ error }) => {
     console.error('[Global Error]', error);
