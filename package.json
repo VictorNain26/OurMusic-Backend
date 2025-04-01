@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@elysiajs/cors": "^1.2.0",
+    "@elysiajs/swagger": "^1.2.2",
     "axios": "^1.8.2",
     "bcryptjs": "^3.0.2",
     "better-auth": "^1.2.5",

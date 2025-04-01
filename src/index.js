@@ -1,10 +1,10 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { elysiaHelmet } from 'elysiajs-helmet';
+import { swagger } from '@elysiajs/swagger';
 import { env } from './config/env.js';
 import { rateLimiter } from './middlewares/rateLimiter.js';
-
-import betterAuthView from './lib/auth/auth-view.js';
+import { auth } from './lib/auth/auth.js';
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
 
@@ -20,9 +20,16 @@ const app = new Elysia()
     })
   )
   .use(rateLimiter())
-  .all('/api/auth/*', betterAuthView)
+  .mount(auth.handler)
   .use(trackRoutes)
   .use(spotifyRoutes)
+  .use(
+    swagger({
+      title: 'OurMusic API Documentation',
+      version: '1.0.0',
+      routePrefix: '/docs',
+    })
+  )
   .onError(({ error }) => {
     console.error('[Global Error]', error);
     return new Response(JSON.stringify({ error: 'Erreur interne du serveur' }), {

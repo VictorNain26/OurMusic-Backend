@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { auth } from '../plugins/auth.js';
+import { auth } from '../lib/auth/auth.js';
 
 const { ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD } = process.env;
 
