@@ -13,16 +13,18 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' }).guard(userMiddle
 
       return await trackService.likeTrack({ ...ctx, body: data });
     })
+
     .get('/like', async ctx => {
       return await trackService.getLikedTracks(ctx);
     })
-    .delete('/like/:trackId', async ctx => {
-      const trackIdParam = ctx.params?.trackId;
-      const parsedId = parseInt(trackIdParam, 10);
 
-      if (!trackIdParam || isNaN(parsedId) || parsedId <= 0) {
-        console.warn('❌ Paramètre DELETE trackId invalide :', trackIdParam);
-        return jsonResponse({ error: 'ID invalide (fallback)' }, 400);
+    .delete('/like/:trackId', async ctx => {
+      const { trackId } = ctx.params;
+      const parsedId = parseInt(trackId, 10);
+
+      if (!trackId || isNaN(parsedId) || parsedId <= 0) {
+        console.warn('❌ Paramètre DELETE trackId invalide :', trackId);
+        return jsonResponse({ error: 'ID invalide' }, 400);
       }
 
       return await trackService.unlikeTrack({ ...ctx, id: parsedId });

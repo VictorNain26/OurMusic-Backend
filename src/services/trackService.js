@@ -65,7 +65,7 @@ export async function unlikeTrack(ctx) {
   const { user, id: trackId } = ctx;
 
   if (!user) return createError('Utilisateur non authentifié', 401);
-  if (!trackId || isNaN(trackId)) return createError('ID invalide', 400);
+  if (!trackId || typeof trackId !== 'string') return createError('ID invalide', 400);
 
   try {
     const existingTrack = await db
