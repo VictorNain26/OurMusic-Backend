@@ -1,13 +1,9 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { admin } from 'better-auth/plugins';
 import { env } from '../../config/env.js';
 import { db } from '../../db/index.js';
-import {
-  user,
-  session,
-  verification,
-  account,
-} from '../../db/schema.js';
+import { user, session, verification, account } from '../../db/schema.js';
 
 export const auth = betterAuth({
   url: env.BETTER_AUTH_URL,
@@ -38,6 +34,8 @@ export const auth = betterAuth({
   cookies: {
     secure: env.FRONTEND_BASE_URL?.startsWith('https://'),
   },
+
+  plugins: [admin()],
 
   onSignUp(ctx) {
     console.log(`🆕 Nouvel utilisateur : ${ctx.user.email}`);
