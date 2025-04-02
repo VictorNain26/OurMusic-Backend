@@ -1,26 +1,26 @@
-import { auth } from '../lib/auth/auth.js';
+import { auth } from '../lib/auth/index.js';
 
 /**
- * Middleware Elysia qui vérifie la session Better Auth
- * et injecte l'utilisateur et la session dans le contexte
+ * Middleware Elysia pour vérifier la session Better Auth
+ * et injecter l'utilisateur et la session dans le contexte
  */
 export const userMiddleware = async ctx => {
   try {
-    const session = await auth.api.getSession({
+    const sessionData = await auth.api.getSession({
       headers: ctx.request.headers,
     });
 
-    if (!session) {
+    if (!sessionData?.user) {
       ctx.set.status = 401;
       return {
         success: 'error',
-        message: '⛔ Accès non autorisé (session manquante)',
+        message: '⛔ Accès non autorisé (utilisateur non authentifié)',
       };
     }
 
     return {
-      user: session.user,
-      session: session.session,
+      user: sessionData.user,
+      session: sessionData.session,
     };
   } catch (error) {
     console.error('[userMiddleware Error]', error);
@@ -33,9 +33,6 @@ export const userMiddleware = async ctx => {
 };
 
 /**
- * Helper pour retourner uniquement les infos d’un utilisateur
+ * Helper pour retourner les infos utilisateur + session
  */
-export const userInfo = (user, session) => ({
-  user,
-  session,
-});
+export const userInfo = (user, session) => ({ user, session });

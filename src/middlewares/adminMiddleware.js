@@ -1,16 +1,23 @@
-import { auth } from '../lib/auth/auth.js';
+import { auth } from '../lib/auth/index.js';
 
 /**
- * Middleware qui vérifie si l'utilisateur est connecté
- * et possède le rôle `admin`. Refuse l'accès sinon.
+ * Middleware Elysia pour vérifier si l'utilisateur est admin
  */
 export const adminMiddleware = async ctx => {
   try {
-    const session = await auth.api.getSession({
+    const sessionData = await auth.api.getSession({
       headers: ctx.request.headers,
     });
 
-    if (!session || session.user?.role !== 'admin') {
+    if (!sessionData?.user) {
+      ctx.set.status = 401;
+      return {
+        success: 'error',
+        message: '⛔ Accès non autorisé (non connecté)',
+      };
+    }
+
+    if (sessionData.user.role !== 'admin') {
       ctx.set.status = 403;
       return {
         success: 'error',
@@ -19,8 +26,8 @@ export const adminMiddleware = async ctx => {
     }
 
     return {
-      user: session.user,
-      session: session.session,
+      user: sessionData.user,
+      session: sessionData.session,
     };
   } catch (error) {
     console.error('[adminMiddleware Error]', error);
