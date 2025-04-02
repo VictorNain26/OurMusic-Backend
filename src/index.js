@@ -22,9 +22,9 @@ app
     })
   )
   .use(rateLimiter())
+  .mount('/api/auth', auth.handler)
   .use(trackRoutes)
   .use(spotifyRoutes)
-  .mount('/api/auth', auth.handler)
   .use(swagger())
   .get('/', () => new Response("Bienvenue sur l'API OurMusic !", { status: 200 }))
   .onError(({ error }) => {
@@ -36,4 +36,4 @@ app
   })
   .listen({ port: env.PORT, hostname: '0.0.0.0' });
 
-console.log(`✅ OurMusic Backend lancé sur http://localhost:${env.PORT}`);
+console.log(`✅ OurMusic Backend lancé sur port ${env.PORT}`);
