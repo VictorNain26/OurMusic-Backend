@@ -1,31 +1,37 @@
 import { Elysia } from 'elysia';
-import { userMiddleware } from '../middlewares/userMiddleware.js';
+import { requireUser } from '../lib/auth/requireUser.js';
 import { validateBody } from '../lib/validate.js';
 import { likeTrackSchema } from '../validators/trackValidator.js';
 import * as trackService from '../services/trackService.js';
 import { jsonResponse } from '../lib/response.js';
 
-export const trackRoutes = new Elysia({ prefix: '/api/track' }).guard(userMiddleware, app =>
-  app
-    .post('/like', async ctx => {
-      const data = validateBody(likeTrackSchema, ctx.body);
-      if (data instanceof Response) return data;
+export const trackRoutes = new Elysia({ prefix: '/api/track' })
+  .post('/like', async ctx => {
+    const res = await requireUser(ctx);
+    if (res instanceof Response) return res;
 
-      return await trackService.likeTrack({ ...ctx, body: data });
-    })
+    const data = validateBody(likeTrackSchema, ctx.body);
+    if (data instanceof Response) return data;
 
-    .get('/like', async ctx => {
-      return await trackService.getLikedTracks(ctx);
-    })
+    return await trackService.likeTrack({ ...ctx, body: data });
+  })
 
-    .delete('/like/:trackId', async ctx => {
-      const { trackId } = ctx.params;
+  .get('/like', async ctx => {
+    const res = await requireUser(ctx);
+    if (res instanceof Response) return res;
 
-      if (!trackId || typeof trackId !== 'string') {
-        console.warn('❌ Paramètre DELETE trackId invalide :', trackId);
-        return jsonResponse({ error: 'ID invalide' }, 400);
-      }
+    return await trackService.getLikedTracks(ctx);
+  })
 
-      return await trackService.unlikeTrack({ ...ctx, id: trackId });
-    })
-);
+  .delete('/like/:trackId', async ctx => {
+    const res = await requireUser(ctx);
+    if (res instanceof Response) return res;
+
+    const { trackId } = ctx.params;
+
+    if (!trackId || typeof trackId !== 'string') {
+      return jsonResponse({ error: 'ID invalide' }, 400);
+    }
+
+    return await trackService.unlikeTrack({ ...ctx, id: trackId });
+  });

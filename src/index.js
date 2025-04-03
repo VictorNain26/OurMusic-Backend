@@ -3,7 +3,6 @@ import { cors } from '@elysiajs/cors';
 import { elysiaHelmet } from 'elysiajs-helmet';
 import { swagger } from '@elysiajs/swagger';
 import { env } from './config/env.js';
-import { rateLimiter } from './middlewares/rateLimiter.js';
 import { auth } from './lib/auth/index.js';
 import { trackRoutes } from './routes/track.routes.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
@@ -21,7 +20,6 @@ app
       exposedHeaders: ['Set-Cookie'],
     })
   )
-  .use(rateLimiter())
   .mount('/api/auth', auth.handler)
   .use(trackRoutes)
   .use(spotifyRoutes)
