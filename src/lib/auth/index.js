@@ -21,7 +21,7 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
-    verificationRequired: true,
+    verificationRequired: false,
   },
 
   socialProviders: {

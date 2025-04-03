@@ -20,7 +20,7 @@ app
       exposedHeaders: ['Set-Cookie'],
     })
   )
-  .mount('/api/auth', auth.handler)
+  .mount(auth.handler)
   .use(trackRoutes)
   .use(spotifyRoutes)
   .use(swagger())
