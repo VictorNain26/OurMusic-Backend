@@ -48,7 +48,7 @@ COPY . .
 RUN chmod +x /app/entrypoint.sh
 
 # 🧼 Clean up: remove dev deps if needed (optionnel)
-RUN bun prune --production
+# RUN bun prune --production
 
 # 🏷️ Docker labels (optional metadata)
 LABEL org.opencontainers.image.title="OurMusic Backend"

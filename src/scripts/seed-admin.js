@@ -13,7 +13,7 @@ if (!ADMIN_EMAIL || !ADMIN_USERNAME || !ADMIN_PASSWORD) {
 
 (async () => {
   try {
-    // Tentative d'inscription (ignorée si déjà inscrit)
+    // Crée l'utilisateur admin via Better Auth
     await auth.api.signUpEmail({
       body: {
         email: ADMIN_EMAIL,
@@ -33,20 +33,17 @@ if (!ADMIN_EMAIL || !ADMIN_USERNAME || !ADMIN_PASSWORD) {
   }
 
   try {
-    // Mise à jour du rôle + vérification email, insensible à la casse
+    // Mise à jour du rôle en admin + email vérifié
     const updated = await db
       .update(userTable)
-      .set({
-        role: 'admin',
-        emailVerified: true,
-      })
+      .set({ role: 'admin', emailVerified: true })
       .where(sql`LOWER("user".email) = LOWER(${ADMIN_EMAIL})`)
       .returning();
 
     if (updated.length === 0) {
       console.warn(`⚠️ Aucune ligne mise à jour pour ${ADMIN_EMAIL}`);
     } else {
-      console.log(`🔧 Rôle mis à jour en 'admin' + email vérifié pour ${ADMIN_EMAIL}`);
+      console.log(`🔧 Rôle admin et email vérifié pour ${ADMIN_EMAIL}`);
     }
   } catch (error) {
     console.error('❌ Erreur SQL lors de la mise à jour du rôle admin :', error);
