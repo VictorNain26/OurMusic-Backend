@@ -4,6 +4,7 @@ import { admin } from 'better-auth/plugins';
 import { env } from '../../config/env.js';
 import { db } from '../../db/index.js';
 import { user, session, verification, account } from '../../db/schema.js';
+import { sendMail } from '../../services/mailerService.js';
 
 export const auth = betterAuth({
   url: env.BETTER_AUTH_URL,
@@ -36,6 +37,53 @@ export const auth = betterAuth({
   },
 
   plugins: [admin()],
+
+  emails: {
+    async send({ to, subject, html, text, type, token }) {
+      // Préheader dynamique selon le type d'email
+      let preheader = 'Découvrez OurMusic dès maintenant 🎶';
+      let isVerificationEmail = false;
+      let isResetPassword = false;
+      let buttonLink = '';
+      let buttonText = '';
+
+      switch (type) {
+        case 'verification-request':
+          preheader = 'Confirmez votre adresse email pour activer votre compte 🎶';
+          isVerificationEmail = true;
+          buttonLink = `${env.FRONTEND_BASE_URL}/verify?token=${token}`;
+          buttonText = 'Vérifier mon email';
+          break;
+
+        case 'reset-password-request':
+          preheader = 'Réinitialisez votre mot de passe pour continuer à profiter de OurMusic 🔒';
+          isResetPassword = true;
+          buttonLink = `${env.FRONTEND_BASE_URL}/reset-password?token=${token}`;
+          buttonText = 'Réinitialiser mon mot de passe';
+          break;
+
+        default:
+          console.warn(`📩 Type d'email non pris en charge : ${type}`);
+          break;
+      }
+
+      try {
+        await sendMail({
+          to,
+          subject,
+          variables: {
+            preheader,
+            isVerificationEmail,
+            isResetPassword,
+            buttonLink,
+            buttonText,
+          },
+        });
+      } catch (error) {
+        console.error('[BetterAuth Email Error]', error);
+      }
+    },
+  },
 
   onSignUp(ctx) {
     console.log(`🆕 Nouvel utilisateur : ${ctx.user.email}`);

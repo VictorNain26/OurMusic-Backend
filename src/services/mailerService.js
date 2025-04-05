@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { htmlToText } from 'html-to-text';
 
 const htmlTemplate = readFileSync(resolve('src/services/templates/mailTemplate.html'), 'utf-8');
 
@@ -26,15 +27,17 @@ const transporter = nodemailer.createTransport({
 export async function sendMail({ to, subject, variables = {} }) {
   try {
     const html = compileTemplate(htmlTemplate, { subject, ...variables });
+    const text = htmlToText(html, { wordwrap: 130 });
 
     await transporter.sendMail({
       from: `OurMusic <noreply@ourmusic.fr>`,
       to,
       subject,
       html,
+      text,
     });
 
-    console.log(`✅ Email envoyé à ${to}`);
+    console.log(`✅ Email envoyé à ${to} — Sujet: "${subject}"`);
   } catch (err) {
     console.error('[Mailer Error]', err);
     throw new Error("Erreur lors de l'envoi de l'e-mail.");

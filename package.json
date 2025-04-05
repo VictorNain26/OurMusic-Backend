@@ -30,6 +30,7 @@
     "elysia": "^1.2.25",
     "elysia-compression": "^0.0.7",
     "elysiajs-helmet": "^1.0.2",
+    "html-to-text": "^9.0.5",
     "nodemailer": "^6.10.0",
     "pg": "^8.14.1",
     "valibot": "^1.0.0"

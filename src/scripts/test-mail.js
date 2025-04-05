@@ -1,23 +1,54 @@
 import { sendMail } from '../services/mailerService.js';
 
+// 📬 Adresse de réception pour le test (met ton adresse réelle ici)
+const testEmail = 'victor.lenain26@gmail.com';
+
+// 📌 Exemple de test pour la vérification d'email
+async function testVerificationEmail() {
+  console.log("🚀 Test: Envoi de l'email de vérification...");
+
+  await sendMail({
+    to: testEmail,
+    subject: "🎉 Test OurMusic — Vérification d'email",
+    variables: {
+      preheader: "Ceci est un test pour la vérification d'email OurMusic 🎶",
+      isVerificationEmail: true,
+      buttonLink: 'https://ourmusic.fr/verify?token=test123',
+      buttonText: 'Vérifier mon email',
+    },
+  });
+
+  console.log('✅ Email de vérification envoyé avec succès.');
+}
+
+// 📌 Exemple de test pour le reset de mot de passe
+async function testResetPasswordEmail() {
+  console.log("🚀 Test: Envoi de l'email de réinitialisation du mot de passe...");
+
+  await sendMail({
+    to: testEmail,
+    subject: '🔒 Test OurMusic — Réinitialisation de mot de passe',
+    variables: {
+      preheader: 'Ceci est un test pour la réinitialisation du mot de passe OurMusic 🔒',
+      isResetPassword: true,
+      buttonLink: 'https://ourmusic.fr/reset-password?token=test123',
+      buttonText: 'Réinitialiser mon mot de passe',
+    },
+  });
+
+  console.log('✅ Email de réinitialisation envoyé avec succès.');
+}
+
+// 🚦 Exécution des tests
 (async () => {
   try {
-    await sendMail({
-      to: 'victor.lenain26@gmail.com',
-      subject: '🎉 Test de template dynamique réussi',
-      variables: {
-        title: 'Bienvenue sur OurMusic !',
-        content:
-          'Nous sommes ravis de vous compter parmi nous. Cliquez sur le bouton ci-dessous pour vérifier votre adresse e-mail.',
-        buttonLink: 'https://ourmusic.fr/verify?token=test123',
-        buttonText: 'Vérifier mon email',
-      },
-    });
+    await testVerificationEmail();
+    await testResetPasswordEmail();
 
-    console.log('✅ Email de test envoyé avec succès.');
+    console.log("🎉 Tous les tests d'email ont été exécutés avec succès.");
+    process.exit(0);
   } catch (error) {
-    console.error("❌ Échec de l'envoi de l'email de test :", error);
+    console.error("❌ Erreur lors des tests d'email :", error);
+    process.exit(1);
   }
-
-  process.exit(0);
 })();
