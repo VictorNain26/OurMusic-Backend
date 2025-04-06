@@ -6,7 +6,7 @@ export const env = {
   FRONTEND_BASE_URL: Bun.env.FRONTEND_BASE_URL || 'http://localhost:8080',
   GOOGLE_CLIENT_ID: Bun.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: Bun.env.GOOGLE_CLIENT_SECRET,
-  ALLOWED_ORIGINS: ['http://localhost:8080', 'https://ourmusic.fr'],
+  ALLOWED_ORIGINS: (Bun.env.ALLOWED_ORIGINS || 'http://localhost:8080').split(','),
 };
 
 if (!env.DATABASE_URL) throw new Error('❌ DATABASE_URL manquant');
