@@ -10,16 +10,16 @@ import { spotifyRoutes } from './routes/spotify.routes.js';
 const app = new Elysia();
 
 app
-  .use(elysiaHelmet())
   .use(
     cors({
-      origin: true,
+      origin: env.ALLOWED_ORIGINS,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
       exposedHeaders: ['Set-Cookie'],
     })
   )
+  .use(elysiaHelmet())
   .mount(auth.handler)
   .use(trackRoutes)
   .use(spotifyRoutes)
@@ -35,3 +35,4 @@ app
   .listen({ port: env.PORT, hostname: '0.0.0.0' });
 
 console.log(`✅ OurMusic Backend lancé sur port ${env.PORT}`);
+console.log(app.routes.map(route => `${route.method} ${route.path}`));
