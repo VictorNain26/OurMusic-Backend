@@ -9,6 +9,15 @@ export async function sendBetterAuthEmail({
   isVerificationEmail = false,
   isResetPassword = false,
 }) {
+  console.log(`📩 [sendBetterAuthEmail] Envoi d'email à ${to} — Sujet : "${subject}"`);
+  console.log(`🧩 Détail :`, {
+    preheader,
+    buttonLink,
+    buttonText,
+    isVerificationEmail,
+    isResetPassword,
+  });
+
   try {
     await sendMail({
       to,
@@ -21,7 +30,8 @@ export async function sendBetterAuthEmail({
         buttonText,
       },
     });
-    console.log(`✅ Email envoyé à ${to} — Sujet : "${subject}"`);
+
+    console.log(`✅ [sendBetterAuthEmail] Email envoyé à ${to} — Sujet : "${subject}"`);
   } catch (error) {
     console.error('[BetterAuth Email Error]', error);
     throw new Error("Erreur lors de l'envoi de l'e-mail.");
