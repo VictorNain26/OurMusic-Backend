@@ -123,6 +123,9 @@ app.onAfterHandle(({ request, set, response }) => {
 // 6) Montage de l’app avec middlewares et routes
 //
 app
+  // 6.4 – Better Auth sur "/api/auth/*"
+  .all('/api/auth/*', betterAuthView)
+
   // 6.1 – Appliquer CORS globalement
   .use(cors(corsConfig))
 
@@ -136,9 +139,6 @@ app
 
   // 6.3 – Swagger
   .use(swagger())
-
-  // 6.4 – Better Auth sur "/api/auth/*"
-  .all('/api/auth/*', betterAuthView)
 
   // 6.5 – Vos routes
   .use(trackRoutes)
