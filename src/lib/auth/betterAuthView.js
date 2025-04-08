@@ -1,7 +1,7 @@
 import { auth } from './index.js';
 
 export async function betterAuthView(ctx) {
-  const allowedMethods = ['POST', 'GET'];
+  const allowedMethods = ['POST', 'GET', 'OPTIONS'];
 
   if (!allowedMethods.includes(ctx.request.method)) {
     return new Response(JSON.stringify({ error: 'Méthode non autorisée' }), {
