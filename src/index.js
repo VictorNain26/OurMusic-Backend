@@ -2,15 +2,34 @@ import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { elysiaHelmet } from 'elysiajs-helmet';
 import { swagger } from '@elysiajs/swagger';
-
-import { env } from './config/env.js';
-import { auth } from './lib/auth/index.js'; // Better Auth instance
-import { spotifyRoutes } from './routes/spotify.routes.js';
-import { trackRoutes } from './routes/track.routes.js';
-import { createError } from './lib/response.js';
 import os from 'os';
 
-// 🌍 Fonction pour obtenir l'IP locale (logs)
+// Votre config, par ex. .env
+import { env } from './config/env.js';
+
+// Better Auth import
+import { auth } from './lib/auth/index.js';
+
+// Vos routes
+import { spotifyRoutes } from './routes/spotify.routes.js';
+import { trackRoutes } from './routes/track.routes.js';
+
+// Votre helper d'erreur
+import { createError } from './lib/response.js';
+
+//
+// 1) Fonction "betterAuthView" (d’après la doc “Mount Handler”)
+//
+const betterAuthView = context => {
+  const BETTER_AUTH_ACCEPT_METHODS = ['POST', 'GET'];
+  if (BETTER_AUTH_ACCEPT_METHODS.includes(context.request.method)) {
+    return auth.handler(context.request);
+  } else {
+    context.error(405);
+  }
+};
+
+// 🌍 Fonction pour obtenir l'IP locale (pour logs)
 function getLocalExternalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
@@ -23,19 +42,25 @@ function getLocalExternalIP() {
   return 'localhost';
 }
 
-// Configuration CORS (adapter si besoin)
+//
+// 2) Configuration CORS (si vous voulez plus de contrôle, adaptez ci-dessous)
+//
 const corsConfig = {
-  origin: env.ALLOWED_ORIGINS || 'http://localhost:8080',
+  origin: env.ALLOWED_ORIGINS || 'http://localhost:8080', // ou un tableau de domaines
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Set-Cookie'], // ou 'Content-Type' si besoin
+  exposedHeaders: ['Set-Cookie', 'Content-Type'],
 };
 
-// 🚀 Application principale
+//
+// 3) Création de l’application Elysia
+//
 const app = new Elysia();
 
-// 📝 Logger – avant la requête
+//
+// 4) Logger avant la requête
+//
 app.onRequest(({ request, set }) => {
   set.startTime = Date.now();
   const method = request.method;
@@ -43,43 +68,50 @@ app.onRequest(({ request, set }) => {
   const origin = request.headers.get('origin');
   const isPreflight = method === 'OPTIONS';
   console.log(
-    `[${new Date().toISOString()}] 📥 ${method} ${url} ${isPreflight ? '(Preflight)' : ''} – Origin: ${origin}`
+    `[${new Date().toISOString()}] 📥 ${method} ${url} ${
+      isPreflight ? '(Preflight)' : ''
+    } – Origin: ${origin}`
   );
 });
 
-// 📝 Logger – après la requête
+//
+// 5) Logger après la requête
+//
 app.onAfterHandle(({ request, set, response }) => {
   const duration = Date.now() - set.startTime;
   console.log(
-    `[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → ${response.status} (${duration}ms)`
+    `[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → ${
+      response.status
+    } (${duration}ms)`
   );
 });
 
-// Montage de l’app
+//
+// 6) Montage de l’app avec middlewares et routes
+//
 app
-  // 1. CORS global
+  // 6.1 – Appliquer CORS globalement
   .use(cors(corsConfig))
 
-  // 2. Helmet
+  // 6.2 – Helmet
   .use(
     elysiaHelmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
-      contentSecurityPolicy: false, // Active-le en prod si besoin
+      contentSecurityPolicy: false, // Activez en prod au besoin
     })
   )
 
-  // 3. Swagger
+  // 6.3 – Swagger
   .use(swagger())
 
-  // 4. Better Auth monté officiellement
-  //    Ici, on monte le handler sur "/api/auth" => /api/auth/get-session, etc.
-  .mount('/api/auth', auth.handler)
+  // 6.4 – Better Auth sur "/api/auth/*"
+  .all('/api/auth/*', betterAuthView)
 
-  // 5. Vos routes (Spotify / Tracks)
+  // 6.5 – Vos routes
   .use(trackRoutes)
   .use(spotifyRoutes)
 
-  // 6. Healthcheck
+  // 6.6 – Healthcheck
   .get(
     '/health',
     () =>
@@ -89,25 +121,29 @@ app
       })
   )
 
-  // 7. Route racine
+  // 6.7 – Page d’accueil
   .get('/', () => new Response("Bienvenue sur l'API OurMusic !", { status: 200 }))
 
-  // 8. Handler global d'erreurs
+  // 6.8 – Handler global des erreurs
   .onError(({ error }) => {
     console.error('[Global Error]', error);
     return createError('Erreur interne du serveur', 500);
   });
 
-// Lancement du serveur
+//
+// 7) Lancement du serveur
+//
 app.listen({ port: env.PORT, hostname: '0.0.0.0' });
 
-// Logs démarrage
+// Logs de démarrage
 const localIP = getLocalExternalIP();
 console.log(`\n✅ OurMusic Backend est lancé et accessible :`);
 console.log(`➡️ Local : http://localhost:${env.PORT}`);
 console.log(`➡️ Réseau local : http://${localIP}:${env.PORT}`);
 console.log(`➡️ Nom de domaine : https://ourmusic-api.ovh\n`);
 
-// Sécurité : catch erreurs globales Node
+//
+// 8) Catch global Node
+//
 process.on('uncaughtException', err => console.error('❌ Uncaught Exception:', err));
 process.on('unhandledRejection', reason => console.error('❌ Unhandled Rejection:', reason));
