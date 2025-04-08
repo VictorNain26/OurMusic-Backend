@@ -9,14 +9,17 @@ export async function sendBetterAuthEmail({
   isVerificationEmail = false,
   isResetPassword = false,
 }) {
-  console.log(`📩 [sendBetterAuthEmail] Envoi d'email à ${to} — Sujet : "${subject}"`);
-  console.log(`🧩 Détail :`, {
-    preheader,
-    buttonLink,
-    buttonText,
-    isVerificationEmail,
-    isResetPassword,
-  });
+  if (Bun.env.DISABLE_EMAILS === 'true') {
+    console.log(`📩 [sendBetterAuthEmail] (DEBUG MODE) Email NON envoyé à ${to}`);
+    console.log(`🧩 Détail (DEBUG) :`, {
+      preheader,
+      buttonLink,
+      buttonText,
+      isVerificationEmail,
+      isResetPassword,
+    });
+    return;
+  }
 
   try {
     await sendMail({

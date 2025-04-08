@@ -19,6 +19,12 @@ export const auth = betterAuth({
     secure: env.FRONTEND_BASE_URL?.startsWith('https://'),
   },
 
+  cors: {
+    origin: env.ALLOWED_ORIGINS,
+    credentials: true,
+    optionsSuccessStatus: 200,
+  },
+
   plugins: [admin()],
 
   emailAndPassword: {

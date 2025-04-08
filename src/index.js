@@ -20,14 +20,27 @@ import { createError } from './lib/response.js';
 //
 // 1) Fonction "betterAuthView" (d’après la doc “Mount Handler”)
 //
-const betterAuthView = context => {
-  const BETTER_AUTH_ACCEPT_METHODS = ['POST', 'GET'];
-  if (BETTER_AUTH_ACCEPT_METHODS.includes(context.request.method)) {
-    return auth.handler(context.request);
-  } else {
-    context.error(405);
+export function betterAuthView(context) {
+  const BETTER_AUTH_ACCEPT_METHODS = ['POST', 'GET', 'OPTIONS'];
+
+  if (!BETTER_AUTH_ACCEPT_METHODS.includes(context.request.method)) {
+    return new Response('Method Not Allowed', { status: 405 });
   }
-};
+
+  if (context.request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': context.request.headers.get('origin') || '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Credentials': 'true',
+      },
+    });
+  }
+
+  return auth.handler(context.request);
+}
 
 // 🌍 Fonction pour obtenir l'IP locale (pour logs)
 function getLocalExternalIP() {
@@ -46,11 +59,31 @@ function getLocalExternalIP() {
 // 2) Configuration CORS (si vous voulez plus de contrôle, adaptez ci-dessous)
 //
 const corsConfig = {
-  origin: env.ALLOWED_ORIGINS || 'http://localhost:8080', // ou un tableau de domaines
+  origin: env.ALLOWED_ORIGINS || 'http://localhost:8080',
+
   credentials: true,
+
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Set-Cookie', 'Content-Type'],
+
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers',
+  ],
+
+  exposedHeaders: [
+    'Set-Cookie',
+    'Content-Type',
+    'Authorization',
+    'Content-Length',
+    'X-Knowledge-Base',
+  ],
+
+  optionsSuccessStatus: 200,
 };
 
 //

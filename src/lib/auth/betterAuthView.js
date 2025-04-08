@@ -10,22 +10,29 @@ export async function betterAuthView(ctx) {
     });
   }
 
-  try {
-    const response = await auth.handler(ctx.request);
-
-    if (!response?.body) {
-      return new Response(JSON.stringify({ session: null }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    return response;
-  } catch (error) {
-    console.error('[betterAuthView Error]', error);
-    return new Response(JSON.stringify({ error: 'Erreur interne du serveur Better Auth' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
+  if (ctx.request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': ctx.request.headers.get('origin') || '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Credentials': 'true',
+      },
     });
   }
+
+  const response = await auth.handler(ctx.request);
+
+  const origin = ctx.request.headers.get('origin') || '*';
+
+  const headers = new Headers(response.headers);
+  headers.set('Access-Control-Allow-Origin', origin);
+  headers.set('Access-Control-Allow-Credentials', 'true');
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
