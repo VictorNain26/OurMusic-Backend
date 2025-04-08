@@ -42,7 +42,24 @@ const betterAuth = new Elysia({ name: 'better-auth' }).all('/api/auth/*', better
 // 🚀 Crée l'app Elysia
 const app = new Elysia();
 
-// 📝 Logger amélioré avec temps de traitement + status code
+// ✅ Middleware global pour injecter les headers CORS dynamiquement
+app.onBeforeHandle(({ request, set }) => {
+  const origin = request.headers.get('origin');
+  const isAllowedOrigin = env.ALLOWED_ORIGINS.includes(origin);
+
+  set.headers = {
+    ...set.headers,
+    'Access-Control-Allow-Origin': isAllowedOrigin ? origin : env.ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+});
+
+// ✅ Handler global pour OPTIONS (preflight)
+app.options('/*', () => new Response(null, { status: 204 }));
+
+// 📝 Logger amélioré avec temps de traitement + status code + origin
 app.onRequest(({ request, set }) => {
   const start = Date.now();
   set.startTime = start;
@@ -50,9 +67,10 @@ app.onRequest(({ request, set }) => {
   const method = request.method;
   const url = request.url;
   const isPreflight = method === 'OPTIONS';
+  const origin = request.headers.get('origin');
 
   console.log(
-    `[${new Date().toISOString()}] 📥 ${method} ${url} ${isPreflight ? '(Preflight)' : ''}`
+    `[${new Date().toISOString()}] 📥 ${method} ${url} ${isPreflight ? '(Preflight)' : ''} — Origin: ${origin}`
   );
 });
 
@@ -63,22 +81,6 @@ app.onAfterHandle(({ request, set, response }) => {
     `[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → ${status} (${duration}ms)`
   );
 });
-
-// ✅ Middleware global pour injecter les headers CORS dans toutes les réponses
-app.onBeforeHandle(({ set }) => {
-  set.headers = {
-    ...set.headers,
-    'Access-Control-Allow-Origin': env.ALLOWED_ORIGINS.includes('*')
-      ? '*'
-      : env.ALLOWED_ORIGINS.join(','),
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true',
-  };
-});
-
-// ✅ Handler global pour OPTIONS (preflight)
-app.options('/*', () => new Response(null, { status: 204 }));
 
 app
   // 🌐 CORS configuration
