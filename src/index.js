@@ -4,8 +4,24 @@ import { elysiaHelmet } from 'elysiajs-helmet';
 import { swagger } from '@elysiajs/swagger';
 import { env } from './config/env.js';
 import { auth } from './lib/auth/index.js';
-import { trackRoutes } from './routes/track.routes.js';
+import { betterAuthView } from './lib/auth/betterAuthView.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
+import { trackRoutes } from './routes/track.routes.js';
+
+const betterAuth = new Elysia({ name: 'better-auth' }).all('/api/auth/*', betterAuthView).macro({
+  auth: {
+    async resolve({ error, request: { headers } }) {
+      const session = await auth.api.getSession({ headers });
+
+      if (!session) return error(401);
+
+      return {
+        user: session.user,
+        session: session.session,
+      };
+    },
+  },
+});
 
 const app = new Elysia();
 
@@ -20,10 +36,10 @@ app
     })
   )
   .use(elysiaHelmet())
-  .mount(auth.handler)
+  .use(swagger())
+  .use(betterAuth)
   .use(trackRoutes)
   .use(spotifyRoutes)
-  .use(swagger())
   .get('/', () => new Response("Bienvenue sur l'API OurMusic !", { status: 200 }))
   .onError(({ error }) => {
     console.error('[Global Error]', error);
@@ -35,4 +51,6 @@ app
   .listen({ port: env.PORT, hostname: '0.0.0.0' });
 
 console.log(`✅ OurMusic Backend lancé sur port ${env.PORT}`);
-console.log(app.routes.map(route => `${route.method} ${route.path}`));
+app.routes.forEach(route => {
+  console.log(`📣 ${route.method} ${route.path}`);
+});
