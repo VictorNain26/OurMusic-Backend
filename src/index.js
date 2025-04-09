@@ -1,6 +1,5 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
-import { elysiaHelmet } from 'elysiajs-helmet';
 import os from 'os';
 
 import { env } from './config/env.js';
@@ -22,7 +21,7 @@ function getLocalExternalIP() {
 
 const app = new Elysia()
 
-  // Middleware: Log des requêtes entrantes
+  // Log des requêtes entrantes
   .onRequest(({ request }) => {
     const method = request.method;
     const url = request.url;
@@ -34,7 +33,7 @@ const app = new Elysia()
     );
   })
 
-  // Plugin: CORS natif
+  // ✅ Plugin: CORS toujours en premier
   .use(
     cors({
       origin: env.ALLOWED_ORIGINS,
@@ -44,18 +43,10 @@ const app = new Elysia()
     })
   )
 
-  // Plugin: Helmet sécurité
-  .use(
-    elysiaHelmet({
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-      contentSecurityPolicy: false,
-    })
-  )
-
-  // Plugin: Better Auth proprement monté
+  // ✅ Plugin: Better Auth correctement monté après CORS + Helmet
   .use(betterAuthPlugin)
 
-  // Routes de l'application
+  // ✅ Routes de l'application
   .use(trackRoutes)
   .use(spotifyRoutes)
 
@@ -82,16 +73,15 @@ const app = new Elysia()
     console.log(`[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → ${status}`);
   })
 
-  // Lancement du serveur
+  // Start server
   .listen({ port: env.PORT, hostname: '0.0.0.0' });
 
-// Affichage console
 const localIP = getLocalExternalIP();
 console.log(`\n✅ OurMusic Backend est lancé et accessible :`);
 console.log(`➡️ Local : http://localhost:${env.PORT}`);
 console.log(`➡️ Réseau local : http://${localIP}:${env.PORT}`);
 console.log(`➡️ Nom de domaine : https://ourmusic-api.ovh\n`);
 
-// Gestion des erreurs fatales
+// Fatal errors
 process.on('uncaughtException', err => console.error('❌ Uncaught Exception:', err));
 process.on('unhandledRejection', reason => console.error('❌ Unhandled Rejection:', reason));
