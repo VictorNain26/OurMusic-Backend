@@ -13,7 +13,7 @@ async function testVerificationEmail() {
     variables: {
       preheader: "Ceci est un test pour la vérification d'email OurMusic 🎶",
       isVerificationEmail: true,
-      buttonLink: 'https://ourmusic.fr/verify?token=test123',
+      buttonLink: 'http://localhost:8080/verify?token=test123',
       buttonText: 'Vérifier mon email',
     },
   });
@@ -31,7 +31,7 @@ async function testResetPasswordEmail() {
     variables: {
       preheader: 'Ceci est un test pour la réinitialisation du mot de passe OurMusic 🔒',
       isResetPassword: true,
-      buttonLink: 'https://ourmusic.fr/reset-password?token=test123',
+      buttonLink: 'http://localhost:8080/reset-password?token=test123',
       buttonText: 'Réinitialiser mon mot de passe',
     },
   });
