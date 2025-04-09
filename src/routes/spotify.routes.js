@@ -7,65 +7,42 @@ import {
 } from '../services/spotifyService.js';
 
 export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
+
+  // ✅ Scrape Spotify (admin uniquement)
   .get(
     '/scrape',
     ({ user }) => {
-      if (user?.role !== 'admin') {
+      if (user.role !== 'admin') {
         return { status: 403, error: '⛔ Accès admin requis' };
       }
 
-      return new Response(
-        createSSEStream(send => handleSpotifyScrape({ user }, send)),
-        {
-          headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-          },
-        }
-      );
+      return createSSEStream(send => handleSpotifyScrape({ user }, send));
     },
     { auth: true }
   )
 
+  // ✅ Sync toutes les playlists (admin uniquement)
   .get(
     '/sync',
     ({ user }) => {
-      if (user?.role !== 'admin') {
+      if (user.role !== 'admin') {
         return { status: 403, error: '⛔ Accès admin requis' };
       }
 
-      return new Response(
-        createSSEStream(send => handleSpotifySyncAll({ user }, send)),
-        {
-          headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-          },
-        }
-      );
+      return createSSEStream(send => handleSpotifySyncAll({ user }, send));
     },
     { auth: true }
   )
 
+  // ✅ Sync playlist par ID (admin uniquement)
   .get(
     '/sync/:id',
     ({ user, params }) => {
-      if (user?.role !== 'admin') {
+      if (user.role !== 'admin') {
         return { status: 403, error: '⛔ Accès admin requis' };
       }
 
-      return new Response(
-        createSSEStream(send => handleSpotifySyncById({ user }, send, params.id)),
-        {
-          headers: {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-          },
-        }
-      );
+      return createSSEStream(send => handleSpotifySyncById({ user }, send, params.id));
     },
     { auth: true }
   );

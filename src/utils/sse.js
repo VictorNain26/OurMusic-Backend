@@ -7,12 +7,13 @@ export function createSSEStream(handler) {
         console.log('[SSE]', json);
       };
 
-      // Envoi d’un événement de connexion
-      controller.enqueue(`data: ${JSON.stringify({ connect: { time: Date.now() } })}\n\n`);
+      // ✅ Envoi d’un événement de connexion immédiat
+      sendEvent({ connect: { time: Date.now() } });
 
+      // ✅ Heartbeat toutes les 25s (plus sûr que 30s pour certains reverse proxies)
       const heartbeat = setInterval(() => {
         sendEvent({ heartbeat: Date.now() });
-      }, 30000);
+      }, 25000);
 
       try {
         await handler(sendEvent);
@@ -22,7 +23,7 @@ export function createSSEStream(handler) {
       } finally {
         clearInterval(heartbeat);
         controller.close();
-        console.log('[SSE] Stream closed');
+        console.log('[SSE] Stream fermé proprement');
       }
     },
   });

@@ -15,6 +15,7 @@ import { delay, ensureDirectoryExists, fileExists, runCommand } from '../utils/f
 import path from 'path';
 import axios from 'axios';
 
+// ✅ Handle scraping des genres Spotify + création playlists
 export async function handleSpotifyScrape(ctx, send) {
   try {
     const genres = ['indie+rock', 'pop', 'rock', 'electronica', 'hip+hop'];
@@ -43,7 +44,7 @@ export async function handleSpotifyScrape(ctx, send) {
           send({ message: `❌ Introuvable sur Spotify : ${track.artist} - ${track.title}` });
         }
 
-        await delay(300);
+        await delay(300); // 👌 On garde un délai pour éviter le rate-limit
       }
 
       send({
@@ -66,11 +67,12 @@ export async function handleSpotifyScrape(ctx, send) {
         playlist = res.data;
         send({ message: `✅ Playlist créée : ${playlistName}` });
       } else {
-        send({ message: `ℹ Playlist existante : ${playlistName}` });
+        send({ message: `ℹ️ Playlist existante : ${playlistName}` });
       }
 
       await addTracksIfNotExist(playlist, uris, token, send);
       await trimPlaylist(playlist, token, send);
+
       send({ message: `✅ Traitement terminé pour ${playlistName}` });
 
       await delay(1000);
@@ -83,6 +85,7 @@ export async function handleSpotifyScrape(ctx, send) {
   }
 }
 
+// ✅ Handle synchronisation globale
 export async function handleSpotifySyncAll(ctx, send) {
   try {
     send({ message: `🔁 Admin ${ctx.user.username} a lancé une synchronisation globale.` });
@@ -112,6 +115,7 @@ export async function handleSpotifySyncAll(ctx, send) {
   }
 }
 
+// ✅ Handle synchronisation par playlist ID
 export async function handleSpotifySyncById(ctx, send, playlistId) {
   try {
     send({ message: `🔁 Sync de la playlist ${playlistId} par ${ctx.user.username}` });
@@ -130,8 +134,8 @@ export async function handleSpotifySyncById(ctx, send, playlistId) {
 
     send({ message: `▶ Synchronisation de ${playlist.name}` });
     await syncSinglePlaylist(playlist, token, send);
-    await runCommand(['chmod', '-R', '777', process.env.PLAYLIST_PATH]);
 
+    await runCommand(['chmod', '-R', '777', process.env.PLAYLIST_PATH]);
     send({ message: `✅ Sync terminée : ${playlist.name}` });
   } catch (err) {
     console.error('[handleSpotifySyncById Error]', err);
@@ -139,6 +143,7 @@ export async function handleSpotifySyncById(ctx, send, playlistId) {
   }
 }
 
+// ✅ Utilitaire : Sync d'une playlist unique
 async function syncSinglePlaylist(playlist, token, send) {
   try {
     const playlistDirPath = await createPlaylistDirectory(playlist);
@@ -146,7 +151,7 @@ async function syncSinglePlaylist(playlist, token, send) {
     const syncFile = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
 
     if (await fileExists(syncFile)) {
-      send({ message: `➡ Fichier de sync trouvé : ${syncFile}` });
+      send({ message: `➡️ Fichier de sync trouvé : ${syncFile}` });
       await syncPlaylistFile(syncFile, playlistDirPath, send);
     } else {
       send({ message: `📂 Création du fichier de sync : ${syncFile}` });
@@ -159,6 +164,7 @@ async function syncSinglePlaylist(playlist, token, send) {
   }
 }
 
+// ✅ Utilitaire : Ajout des nouveaux morceaux à la playlist
 async function addTracksIfNotExist(playlist, uris, token, send) {
   try {
     const existingUris = (
@@ -169,6 +175,7 @@ async function addTracksIfNotExist(playlist, uris, token, send) {
     ).data.items.map(i => i.track.uri);
 
     const newUris = uris.filter(uri => !existingUris.includes(uri));
+
     if (newUris.length) {
       await axios.post(
         `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,

@@ -20,50 +20,21 @@ function getLocalExternalIP() {
   return 'localhost';
 }
 
-const app = new Elysia();
+const app = new Elysia()
 
-app.onRequest(({ request, set }) => {
-  set.startTime = Date.now();
-  const method = request.method;
-  const url = request.url;
-  const origin = request.headers.get('origin');
-  const isPreflight = method === 'OPTIONS';
-  console.log(
-    `[${new Date().toISOString()}] 📥 ${method} ${url} ${
-      isPreflight ? '(Preflight)' : ''
-    } – Origin: ${origin}`
-  );
-});
+  // Middleware: Log des requêtes entrantes
+  .onRequest(({ request }) => {
+    const method = request.method;
+    const url = request.url;
+    const origin = request.headers.get('origin');
+    const isPreflight = method === 'OPTIONS';
 
-app.onAfterHandle(({ response, set }) => {
-  if (!response) return;
-  if (response instanceof ReadableStream) return response;
+    console.log(
+      `[${new Date().toISOString()}] 📥 ${method} ${url} ${isPreflight ? '(Preflight)' : ''} – Origin: ${origin}`
+    );
+  })
 
-  if (response?.error) {
-    set.status = response.status || 500;
-    return {
-      success: false,
-      error: response.error,
-      status: set.status,
-    };
-  }
-
-  set.status = response.status || 200;
-  return {
-    success: true,
-    data: response,
-    status: set.status,
-  };
-});
-
-app.onAfterHandle(({ request, set, response }) => {
-  const duration = Date.now() - set.startTime;
-  console.log(
-    `[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → ${response?.status || 200} (${duration}ms)`
-  );
-});
-
-app
+  // Plugin: CORS natif
   .use(
     cors({
       origin: env.ALLOWED_ORIGINS,
@@ -72,34 +43,55 @@ app
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     })
   )
+
+  // Plugin: Helmet sécurité
   .use(
     elysiaHelmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
       contentSecurityPolicy: false,
     })
   )
+
+  // Plugin: Better Auth proprement monté
   .use(betterAuthPlugin)
+
+  // Routes de l'application
   .use(trackRoutes)
   .use(spotifyRoutes)
+
+  // Healthcheck
   .get('/health', () => ({
     status: 'ok',
     uptime: process.uptime(),
   }))
+
+  // Root welcome
   .get('/', () => ({
-    message: "Bienvenue sur l'API OurMusic !",
+    message: "Bienvenue sur l'API OurMusic 🎶",
   }))
+
+  // Global error handler
   .onError(({ error }) => {
     console.error('[Global Error]', error);
     return { status: 500, error: 'Erreur interne du serveur' };
-  });
+  })
 
-app.listen({ port: env.PORT, hostname: '0.0.0.0' });
+  // Log des réponses
+  .onAfterHandle(({ request, response }) => {
+    const status = response?.status ?? 200;
+    console.log(`[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → ${status}`);
+  })
 
+  // Lancement du serveur
+  .listen({ port: env.PORT, hostname: '0.0.0.0' });
+
+// Affichage console
 const localIP = getLocalExternalIP();
 console.log(`\n✅ OurMusic Backend est lancé et accessible :`);
 console.log(`➡️ Local : http://localhost:${env.PORT}`);
 console.log(`➡️ Réseau local : http://${localIP}:${env.PORT}`);
 console.log(`➡️ Nom de domaine : https://ourmusic-api.ovh\n`);
 
+// Gestion des erreurs fatales
 process.on('uncaughtException', err => console.error('❌ Uncaught Exception:', err));
 process.on('unhandledRejection', reason => console.error('❌ Unhandled Rejection:', reason));

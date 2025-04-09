@@ -11,7 +11,8 @@ export async function sendBetterAuthEmail({
 }) {
   if (Bun.env.DISABLE_EMAILS === 'true') {
     console.log(`📩 [sendBetterAuthEmail] (DEBUG MODE) Email NON envoyé à ${to}`);
-    console.log(`🧩 Détail (DEBUG) :`, {
+    console.log('🧩 Détail (DEBUG) :', {
+      subject,
       preheader,
       buttonLink,
       buttonText,

@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { admin } from 'better-auth/plugins';
+
 import { env } from '../../config/env.js';
 import { db } from '../../db/index.js';
 import { user, session, verification, account } from '../../db/schema.js';
@@ -33,7 +34,7 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
 
-    sendResetPassword: async ({ user, url }, request) => {
+    sendResetPassword: async ({ user, url }) => {
       await sendBetterAuthEmail({
         to: user.email,
         subject: '🔒 Réinitialisez votre mot de passe',
@@ -49,7 +50,7 @@ export const auth = betterAuth({
     sendOnSignUp: false,
     autoSignInAfterVerification: true,
 
-    sendVerificationEmail: async ({ user, url }, request) => {
+    sendVerificationEmail: async ({ user, url }) => {
       await sendBetterAuthEmail({
         to: user.email,
         subject: '🎉 Confirmez votre adresse email',
