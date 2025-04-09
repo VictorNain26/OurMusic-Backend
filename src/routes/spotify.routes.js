@@ -9,51 +9,24 @@ import {
 
 export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
   .get('/scrape', async ctx => {
-    const res = await requireAdmin(ctx);
-    if (res instanceof Response) return res;
+    const admin = await requireAdmin(ctx);
+    if (admin) return admin;
 
-    return new Response(
-      createSSEStream(send => handleSpotifyScrape(ctx, send)),
-      {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      }
-    );
+    return createSSEStream(send => handleSpotifyScrape(ctx, send));
   })
 
   .get('/sync', async ctx => {
-    const res = await requireAdmin(ctx);
-    if (res instanceof Response) return res;
+    const admin = await requireAdmin(ctx);
+    if (admin) return admin;
 
-    return new Response(
-      createSSEStream(send => handleSpotifySyncAll(ctx, send)),
-      {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      }
-    );
+    return createSSEStream(send => handleSpotifySyncAll(ctx, send));
   })
 
   .get('/sync/:id', async ctx => {
-    const res = await requireAdmin(ctx);
-    if (res instanceof Response) return res;
+    const admin = await requireAdmin(ctx);
+    if (admin) return admin;
 
     const { id } = ctx.params;
 
-    return new Response(
-      createSSEStream(send => handleSpotifySyncById(ctx, send, id)),
-      {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      }
-    );
+    return createSSEStream(send => handleSpotifySyncById(ctx, send, id));
   });

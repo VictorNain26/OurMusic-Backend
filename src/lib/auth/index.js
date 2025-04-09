@@ -22,7 +22,7 @@ export const auth = betterAuth({
   },
 
   cors: {
-    origin: env.ALLOWED_ORIGINS,
+    origin: [env.ALLOWED_ORIGINS],
     credentials: true,
     optionsSuccessStatus: 200,
   },

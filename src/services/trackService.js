@@ -1,6 +1,5 @@
 import { db, schema } from '../db/index.js';
 import { eq, and } from 'drizzle-orm';
-import { jsonResponse, createError } from '../lib/response.js';
 
 /**
  * ✅ Like un morceau pour un utilisateur donné
@@ -24,7 +23,7 @@ export async function likeTrack(ctx) {
       .then(res => res[0]);
 
     if (existingTrack) {
-      return createError('Déjà liké', 400);
+      return { status: 400, error: 'Déjà liké' };
     }
 
     const [likedTrack] = await db
@@ -32,10 +31,14 @@ export async function likeTrack(ctx) {
       .values({ title, artist, artwork, youtubeUrl, userId: user.id })
       .returning();
 
-    return jsonResponse({ message: 'Morceau liké', likedTrack }, 201);
+    return {
+      status: 201,
+      message: 'Morceau liké',
+      likedTrack,
+    };
   } catch (err) {
     console.error('[TrackService → likeTrack]', err);
-    return createError('Erreur serveur lors du like', 500);
+    return { status: 500, error: 'Erreur serveur lors du like' };
   }
 }
 
@@ -51,10 +54,10 @@ export async function getLikedTracks(ctx) {
       .from(schema.likedTracks)
       .where(eq(schema.likedTracks.userId, user.id));
 
-    return jsonResponse({ likedTracks }, 200);
+    return { likedTracks };
   } catch (err) {
     console.error('[TrackService → getLikedTracks]', err);
-    return createError('Erreur serveur lors de la récupération des morceaux', 500);
+    return { status: 500, error: 'Erreur serveur lors de la récupération des morceaux' };
   }
 }
 
@@ -64,8 +67,8 @@ export async function getLikedTracks(ctx) {
 export async function unlikeTrack(ctx) {
   const { user, id: trackId } = ctx;
 
-  if (!user) return createError('Utilisateur non authentifié', 401);
-  if (!trackId || typeof trackId !== 'string') return createError('ID invalide', 400);
+  if (!user) return { status: 401, error: 'Utilisateur non authentifié' };
+  if (!trackId || typeof trackId !== 'string') return { status: 400, error: 'ID invalide' };
 
   try {
     const existingTrack = await db
@@ -76,16 +79,16 @@ export async function unlikeTrack(ctx) {
       .then(res => res[0]);
 
     if (!existingTrack) {
-      return createError('Morceau introuvable ou non associé à cet utilisateur', 404);
+      return { status: 404, error: 'Morceau introuvable ou non associé à cet utilisateur' };
     }
 
     await db
       .delete(schema.likedTracks)
       .where(and(eq(schema.likedTracks.id, trackId), eq(schema.likedTracks.userId, user.id)));
 
-    return jsonResponse({ message: 'Morceau retiré des favoris', trackId });
+    return { message: 'Morceau retiré des favoris', trackId };
   } catch (err) {
     console.error('[TrackService → unlikeTrack]', err);
-    return createError('Erreur serveur lors de la suppression du morceau liké', 500);
+    return { status: 500, error: 'Erreur serveur lors de la suppression du morceau liké' };
   }
 }

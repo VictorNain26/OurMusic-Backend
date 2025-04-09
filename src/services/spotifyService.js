@@ -1,4 +1,3 @@
-// src/services/spotifyService.js
 import {
   getSpotifyAccessToken,
   getOurMusicPlaylists,

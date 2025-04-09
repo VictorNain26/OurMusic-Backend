@@ -5,47 +5,9 @@ import os from 'os';
 
 import { env } from './config/env.js';
 import { auth } from './lib/auth/index.js';
+import { withAuthPlugin } from './lib/auth/plugin.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
 import { trackRoutes } from './routes/track.routes.js';
-import { createError } from './lib/response.js';
-
-/**
- * ✅ Fonction utilitaire pour construire les en-têtes CORS en fonction de l'origine
- */
-function getCorsHeaders(origin) {
-  const allowedOrigin = env.ALLOWED_ORIGINS.includes(origin) ? origin : env.ALLOWED_ORIGINS;
-
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE, PATCH',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true',
-  };
-}
-
-/**
- * ✅ Handler Better Auth avec injection manuelle des en-têtes CORS
- */
-export async function betterAuthView(context) {
-  const origin = context.request.headers.get('origin') || env.ALLOWED_ORIGINS;
-  const corsHeaders = getCorsHeaders(origin);
-
-  if (context.request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
-  }
-
-  const response = await auth.handler(context.request);
-  const headers = new Headers(response.headers);
-
-  Object.entries(corsHeaders).forEach(([key, value]) => {
-    headers.set(key, value);
-  });
-
-  return new Response(response.body, {
-    status: response.status,
-    headers,
-  });
-}
 
 /**
  * ✅ Récupération de l’IP locale (pour log ou usage réseau)
@@ -81,11 +43,36 @@ app.onRequest(({ request, set }) => {
   );
 });
 
+// 🧩 Plugin Auth global : injection automatique ctx.user et ctx.session
+app.use(withAuthPlugin());
+
+// 🧩 Middleware global de formatage de réponse
+app.onAfterHandle(({ response, set }) => {
+  if (!response) return;
+  if (response instanceof ReadableStream) return response;
+
+  if (response?.error) {
+    set.status = response.status || 500;
+    return {
+      success: false,
+      error: response.error,
+      status: set.status,
+    };
+  }
+
+  set.status = response.status || 200;
+  return {
+    success: true,
+    data: response,
+    status: set.status,
+  };
+});
+
 // 🧩 Logger post-requête
 app.onAfterHandle(({ request, set, response }) => {
   const duration = Date.now() - set.startTime;
   console.log(
-    `[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → ${response.status} (${duration}ms)`
+    `[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → ${response?.status || 200} (${duration}ms)`
   );
 });
 
@@ -93,50 +80,33 @@ app.onAfterHandle(({ request, set, response }) => {
 // ✅ Ordre des middlewares et routes
 //
 app
-  // ✅ 1. Middleware global CORS
-  //    Assure les en-têtes Access-Control-Allow-* pour toutes les routes "simples"
   .use(
     cors({
-      origin: env.ALLOWED_ORIGINS, // ex: ['http://localhost:8080','http://autre-domaine.com']
+      origin: env.ALLOWED_ORIGINS,
       credentials: true,
       allowedHeaders: ['Content-Type', 'Authorization'],
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     })
   )
-
-  // ✅ 2. Helmet sécurité
   .use(
     elysiaHelmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
       contentSecurityPolicy: false,
     })
   )
-
-  // ✅ 3. Routes d'authentification (Better Auth)
-  //    Ici, on gère la méthode OPTIONS manuellement via betterAuthView
-  .all('/api/auth/*', betterAuthView)
-
-  // ✅ 4. Routes API privées (le CORS global s'applique déjà)
+  .use(auth)
   .use(trackRoutes)
   .use(spotifyRoutes)
-
-  // ✅ 5. Healthcheck
-  .get(
-    '/health',
-    () =>
-      new Response(JSON.stringify({ status: 'ok', uptime: process.uptime() }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-  )
-
-  // ✅ 6. Page d’accueil
-  .get('/', () => new Response("Bienvenue sur l'API OurMusic !", { status: 200 }))
-
-  // ✅ 7. Global error handler
+  .get('/health', () => ({
+    status: 'ok',
+    uptime: process.uptime(),
+  }))
+  .get('/', () => ({
+    message: "Bienvenue sur l'API OurMusic !",
+  }))
   .onError(({ error }) => {
     console.error('[Global Error]', error);
-    return createError('Erreur interne du serveur', 500);
+    return { status: 500, error: 'Erreur interne du serveur' };
   });
 
 //
