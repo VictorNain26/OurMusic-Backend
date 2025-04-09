@@ -13,8 +13,6 @@ import { createError } from './lib/response.js';
  * ✅ Fonction utilitaire pour construire les en-têtes CORS en fonction de l'origine
  */
 function getCorsHeaders(origin) {
-  // On vérifie que l'origine est incluse dans la liste ALLOWED_ORIGINS
-  // Sinon, on utilise la première de la liste comme fallback
   const allowedOrigin = env.ALLOWED_ORIGINS.includes(origin) ? origin : env.ALLOWED_ORIGINS;
 
   return {
@@ -29,20 +27,16 @@ function getCorsHeaders(origin) {
  * ✅ Handler Better Auth avec injection manuelle des en-têtes CORS
  */
 export async function betterAuthView(context) {
-  // On récupère l'origin depuis la requête HTTP
   const origin = context.request.headers.get('origin') || env.ALLOWED_ORIGINS;
   const corsHeaders = getCorsHeaders(origin);
 
-  // Gestion préflight : si la méthode est OPTIONS, on renvoie direct les en-têtes sans body
   if (context.request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  // Sinon, on laisse la lib d'auth gérer la réponse
   const response = await auth.handler(context.request);
   const headers = new Headers(response.headers);
 
-  // On injecte nos en-têtes CORS dans la réponse
   Object.entries(corsHeaders).forEach(([key, value]) => {
     headers.set(key, value);
   });
