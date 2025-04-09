@@ -1,7 +1,7 @@
-import { pgTable, serial, text, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 
 // ─────────────────────────────────────────────
-// USER TABLE (Better Auth)
+// USER TABLE
 // ─────────────────────────────────────────────
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -49,6 +49,7 @@ export const session = pgTable('session', {
   updatedAt: timestamp('updated_at').notNull(),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
+
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
@@ -67,14 +68,16 @@ export const verification = pgTable('verification', {
 });
 
 // ─────────────────────────────────────────────
-// LIKED_TRACKS TABLE (OurMusic)
+// LIKED_TRACKS TABLE (custom pour OurMusic)
 // ─────────────────────────────────────────────
 export const likedTracks = pgTable('liked_tracks', {
-  id: serial('id').primaryKey(),
+  id: text('id').primaryKey(),
   title: text('title').notNull(),
   artist: text('artist').notNull(),
   artwork: text('artwork').notNull(),
   youtubeUrl: text('youtube_url').notNull(),
+
+  // userId en text, cohérent avec user.id
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),

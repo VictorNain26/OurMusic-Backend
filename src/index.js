@@ -10,28 +10,48 @@ import { spotifyRoutes } from './routes/spotify.routes.js';
 import { trackRoutes } from './routes/track.routes.js';
 import { createError } from './lib/response.js';
 
-export function betterAuthView(context) {
-  const BETTER_AUTH_ACCEPT_METHODS = ['POST', 'GET', 'OPTIONS'];
+/**
+ * ✅ Headers CORS globaux et réutilisables
+ */
+function getCorsHeaders(origin) {
+  const allowedOrigin = env.ALLOWED_ORIGINS.includes(origin) ? origin : env.ALLOWED_ORIGINS[0];
 
-  if (!BETTER_AUTH_ACCEPT_METHODS.includes(context.request.method)) {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-
-  if (context.request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': context.request.headers.get('origin') || '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE, PATCH',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Credentials': 'true',
-      },
-    });
-  }
-
-  return auth.handler(context.request);
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE, PATCH',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+  };
 }
 
+/**
+ * ✅ Handler Better Auth avec CORS proprement géré
+ */
+export function betterAuthView(context) {
+  const { request } = context;
+  const origin = request.headers.get('origin') || '*';
+  const headers = getCorsHeaders(origin);
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers });
+  }
+
+  return auth.handler(request).then(res => {
+    const responseHeaders = new Headers(res.headers);
+    Object.entries(headers).forEach(([key, value]) => {
+      responseHeaders.set(key, value);
+    });
+
+    return new Response(res.body, {
+      status: res.status,
+      headers: responseHeaders,
+    });
+  });
+}
+
+/**
+ * ✅ Récupération de l’IP locale
+ */
 function getLocalExternalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
@@ -44,6 +64,9 @@ function getLocalExternalIP() {
   return 'localhost';
 }
 
+/**
+ * 🚀 Instance Elysia
+ */
 const app = new Elysia();
 
 // 🧩 Logger pré-requête
@@ -71,21 +94,21 @@ app.onAfterHandle(({ request, set, response }) => {
 });
 
 //
-// ✅ Ordre correct des middlewares
+// ✅ Ordre des middlewares et routes
 //
 
 app
-  // ✅ 1. Appliquer CORS globalement AVANT toutes les routes
+  // ✅ 1. CORS global
   .use(
     cors({
-      origin: ['http://localhost:8080', 'https://ourmusic.fr'],
+      origin: env.ALLOWED_ORIGINS,
       credentials: true,
       allowedHeaders: ['Content-Type', 'Authorization'],
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     })
   )
 
-  // ✅ 2. Helmet
+  // ✅ 2. Helmet sécurité
   .use(
     elysiaHelmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -93,10 +116,10 @@ app
     })
   )
 
-  // ✅ 3. Swagger
+  // ✅ 3. Swagger doc
   .use(swagger())
 
-  // ✅ 4. Better Auth
+  // ✅ 4. Better Auth routes avec CORS propre
   .all('/api/auth/*', betterAuthView)
 
   // ✅ 5. Routes API privées
@@ -104,14 +127,12 @@ app
   .use(spotifyRoutes)
 
   // ✅ 6. Healthcheck
-  .get(
-    '/health',
-    () =>
-      new Response(JSON.stringify({ status: 'ok', uptime: process.uptime() }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-  )
+  .get('/health', () => {
+    return new Response(JSON.stringify({ status: 'ok', uptime: process.uptime() }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  })
 
   // ✅ 7. Page d’accueil
   .get('/', () => new Response("Bienvenue sur l'API OurMusic !", { status: 200 }))
@@ -123,7 +144,7 @@ app
   });
 
 //
-// 🚀 Serveur listen
+// 🚀 Démarrage du serveur
 //
 app.listen({ port: env.PORT, hostname: '0.0.0.0' });
 
