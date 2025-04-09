@@ -1,5 +1,4 @@
 import { Elysia } from 'elysia';
-import { requireAdmin } from '../lib/auth/requireAdmin.js';
 import { createSSEStream } from '../utils/sse.js';
 import {
   handleSpotifyScrape,
@@ -8,25 +7,65 @@ import {
 } from '../services/spotifyService.js';
 
 export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
-  .get('/scrape', async ctx => {
-    const admin = await requireAdmin(ctx);
-    if (admin) return admin;
+  .get(
+    '/scrape',
+    ({ user }) => {
+      if (user?.role !== 'admin') {
+        return { status: 403, error: '⛔ Accès admin requis' };
+      }
 
-    return createSSEStream(send => handleSpotifyScrape(ctx, send));
-  })
+      return new Response(
+        createSSEStream(send => handleSpotifyScrape({ user }, send)),
+        {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          },
+        }
+      );
+    },
+    { auth: true }
+  )
 
-  .get('/sync', async ctx => {
-    const admin = await requireAdmin(ctx);
-    if (admin) return admin;
+  .get(
+    '/sync',
+    ({ user }) => {
+      if (user?.role !== 'admin') {
+        return { status: 403, error: '⛔ Accès admin requis' };
+      }
 
-    return createSSEStream(send => handleSpotifySyncAll(ctx, send));
-  })
+      return new Response(
+        createSSEStream(send => handleSpotifySyncAll({ user }, send)),
+        {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          },
+        }
+      );
+    },
+    { auth: true }
+  )
 
-  .get('/sync/:id', async ctx => {
-    const admin = await requireAdmin(ctx);
-    if (admin) return admin;
+  .get(
+    '/sync/:id',
+    ({ user, params }) => {
+      if (user?.role !== 'admin') {
+        return { status: 403, error: '⛔ Accès admin requis' };
+      }
 
-    const { id } = ctx.params;
-
-    return createSSEStream(send => handleSpotifySyncById(ctx, send, id));
-  });
+      return new Response(
+        createSSEStream(send => handleSpotifySyncById({ user }, send, params.id)),
+        {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          },
+        }
+      );
+    },
+    { auth: true }
+  );

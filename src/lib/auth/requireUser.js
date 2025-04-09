@@ -1,19 +1,9 @@
-import { auth } from './index.js';
-
-export async function requireUser(ctx) {
-  try {
-    const sessionData = await auth.api.getSession({ headers: ctx.request.headers });
-
-    if (!sessionData?.user) {
-      return { error: '⛔ Non connecté', status: 401 };
-    }
-
-    ctx.user = sessionData.user;
-    ctx.session = sessionData.session;
-
-    return null;
-  } catch (err) {
-    console.error('[requireUser Error]', err);
-    return { error: '❌ Erreur serveur auth', status: 500 };
+// Ce fichier est optionnel maintenant grâce à la macro.
+// Tu peux le garder pour compatibilité, mais tu n'en auras plus besoin dans tes routes.
+export async function requireUser({ user }) {
+  if (!user) {
+    return { status: 401, error: 'Non connecté' };
   }
+
+  return null;
 }
