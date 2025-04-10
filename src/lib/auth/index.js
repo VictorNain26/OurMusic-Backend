@@ -20,6 +20,7 @@ export const auth = betterAuth({
 
   cookies: {
     secure: env.FRONTEND_BASE_URL?.startsWith('https://'),
+    sameSite: 'none',
   },
 
   cors: {
