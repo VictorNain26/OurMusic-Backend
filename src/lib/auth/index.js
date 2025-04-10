@@ -7,6 +7,8 @@ import { db } from '../../db/index.js';
 import { user, session, verification, account } from '../../db/schema.js';
 import { sendBetterAuthEmail } from './sendBetterAuthEmail.js';
 
+const isProd = process.env.ENV === 'production';
+
 export const auth = betterAuth({
   url: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
@@ -23,13 +25,15 @@ export const auth = betterAuth({
   },
 
   advanced: {
-    useSecureCookies: true,
-    crossSubDomainCookies: {
-      enabled: true,
-      domain: 'ourmusic-api.ovh',
-    },
+    useSecureCookies: isProd,
+    crossSubDomainCookies: isProd
+      ? {
+          enabled: true,
+          domain: 'ourmusic-api.ovh',
+        }
+      : undefined,
     defaultCookieAttributes: {
-      secure: true,
+      secure: isProd,
       httpOnly: true,
       sameSite: 'none',
       partitioned: true,
