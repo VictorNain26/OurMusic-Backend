@@ -20,7 +20,20 @@ export const auth = betterAuth({
 
   cookies: {
     secure: env.FRONTEND_BASE_URL?.startsWith('https://'),
-    sameSite: 'none',
+  },
+
+  advanced: {
+    useSecureCookies: true,
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: '.ourmusic.fr',
+    },
+    defaultCookieAttributes: {
+      secure: true,
+      httpOnly: true,
+      sameSite: 'none',
+      partitioned: true,
+    },
   },
 
   cors: {
