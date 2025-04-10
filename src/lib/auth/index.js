@@ -21,7 +21,7 @@ export const auth = betterAuth({
   }),
 
   cookies: {
-    secure: env.FRONTEND_BASE_URL?.startsWith('https://'),
+    secure: isProd,
   },
 
   advanced: {
@@ -35,8 +35,8 @@ export const auth = betterAuth({
     defaultCookieAttributes: {
       secure: isProd,
       httpOnly: true,
-      sameSite: 'none',
-      partitioned: true,
+      sameSite: isProd ? 'none' : 'lax',
+      partitioned: isProd ? true : false,
     },
   },
 
