@@ -26,7 +26,7 @@ export const auth = betterAuth({
     useSecureCookies: true,
     crossSubDomainCookies: {
       enabled: true,
-      domain: '.ourmusic.fr',
+      domain: 'ourmusic.fr',
     },
     defaultCookieAttributes: {
       secure: true,
