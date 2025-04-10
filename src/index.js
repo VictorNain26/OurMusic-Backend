@@ -1,23 +1,10 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
-import os from 'os';
 
 import { env } from './config/env.js';
 import { betterAuthPlugin } from './lib/auth/betterAuthPlugin.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
 import { trackRoutes } from './routes/track.routes.js';
-
-function getLocalExternalIP() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name] || []) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
-    }
-  }
-  return 'localhost';
-}
 
 const app = new Elysia()
 
@@ -74,12 +61,10 @@ const app = new Elysia()
   })
 
   // Start server
-  .listen(env.PORT);
+  .listen({ port: env.PORT, hostname: '0.0.0.0' });
 
-const localIP = getLocalExternalIP();
 console.log(`\n✅ OurMusic Backend est lancé et accessible :`);
 console.log(`➡️ Local : http://localhost:${env.PORT}`);
-console.log(`➡️ Réseau local : http://${localIP}:${env.PORT}`);
 console.log(`➡️ Nom de domaine : https://ourmusic-api.ovh\n`);
 
 // Fatal errors
