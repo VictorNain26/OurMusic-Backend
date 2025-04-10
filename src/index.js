@@ -74,7 +74,7 @@ const app = new Elysia()
   })
 
   // Start server
-  .listen({ port: env.PORT, hostname: '0.0.0.0' });
+  .listen(env.PORT);
 
 const localIP = getLocalExternalIP();
 console.log(`\n✅ OurMusic Backend est lancé et accessible :`);
