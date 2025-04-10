@@ -26,7 +26,7 @@ export const auth = betterAuth({
     useSecureCookies: true,
     crossSubDomainCookies: {
       enabled: true,
-      domain: env.FRONTEND_BASE_URL,
+      domain: 'ourmusic-api.ovh',
     },
     defaultCookieAttributes: {
       secure: true,
