@@ -52,13 +52,12 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
 
-    sendResetPassword: async ({ user, token }) => {
-      const resetLink = `${env.FRONTEND_BASE_URL}/reset-password?token=${token}`;
+    sendResetPassword: async ({ user, url }) => {
       await sendBetterAuthEmail({
         to: user.email,
         subject: '🔒 Réinitialisez votre mot de passe',
         preheader: 'Réinitialisez votre mot de passe pour continuer à profiter de OurMusic 🔒',
-        buttonLink: resetLink,
+        buttonLink: url,
         buttonText: 'Réinitialiser mon mot de passe',
         isResetPassword: true,
       });
@@ -69,13 +68,12 @@ export const auth = betterAuth({
     sendOnSignUp: false,
     autoSignInAfterVerification: true,
 
-    sendVerificationEmail: async ({ user, token }) => {
-      const verificationLink = `${env.FRONTEND_BASE_URL}/verify?token=${token}`;
+    sendVerificationEmail: async ({ user, url }) => {
       await sendBetterAuthEmail({
         to: user.email,
         subject: '🎉 Confirmez votre adresse email',
         preheader: 'Confirmez votre adresse email pour activer votre compte 🎶',
-        buttonLink: verificationLink,
+        buttonLink: url,
         buttonText: 'Vérifier mon email',
         isVerificationEmail: true,
       });
