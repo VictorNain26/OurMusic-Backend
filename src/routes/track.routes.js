@@ -4,6 +4,7 @@ import { likeTrackSchema } from '../validators/trackValidator.js';
 import * as trackService from '../services/trackService.js';
 
 export const trackRoutes = new Elysia({ prefix: '/api/track' })
+
   // ✅ Liker un morceau
   .post(
     '/like',
@@ -13,7 +14,9 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
 
       return trackService.likeTrack({ user, body: data });
     },
-    { auth: true }
+    {
+      auth: true,
+    }
   )
 
   // ✅ Récupérer les morceaux likés
@@ -22,7 +25,9 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
     async ({ user }) => {
       return trackService.getLikedTracks({ user });
     },
-    { auth: true }
+    {
+      auth: true,
+    }
   )
 
   // ✅ Supprimer un morceau liké
@@ -37,5 +42,7 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
 
       return trackService.unlikeTrack({ user, id: trackId });
     },
-    { auth: true }
+    {
+      auth: true,
+    }
   );
