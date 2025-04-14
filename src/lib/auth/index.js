@@ -67,10 +67,6 @@ export const auth = betterAuth({
       const redirectUrl = `${env.FRONTEND_BASE_URL}?password_reset=success`;
       return ctx.redirect(redirectUrl);
     },
-
-    resetPassword: {
-      callbackUrl: env.FRONTEND_BASE_URL,
-    },
   },
 
   emailVerification: {
@@ -92,10 +88,6 @@ export const auth = betterAuth({
       const redirectUrl = `${env.FRONTEND_BASE_URL}?email_verified=success`;
       return ctx.redirect(redirectUrl);
     },
-
-    verification: {
-      callbackUrl: env.FRONTEND_BASE_URL,
-    },
   },
 
   onSignUp(ctx) {
@@ -110,4 +102,3 @@ export const auth = betterAuth({
     console.log(`👋 Déconnexion : ${ctx.user.email}`);
   },
 });
-  
