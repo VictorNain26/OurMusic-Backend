@@ -68,7 +68,6 @@ export const auth = betterAuth({
       return ctx.redirect(redirectUrl);
     },
 
-    // ✅ Ajout correct du callbackURL pour le reset password
     resetPassword: {
       callbackUrl: env.FRONTEND_BASE_URL,
     },
@@ -94,7 +93,6 @@ export const auth = betterAuth({
       return ctx.redirect(redirectUrl);
     },
 
-    // ✅ Ajout correct du callbackURL pour la vérification d'email
     verification: {
       callbackUrl: env.FRONTEND_BASE_URL,
     },
@@ -112,3 +110,4 @@ export const auth = betterAuth({
     console.log(`👋 Déconnexion : ${ctx.user.email}`);
   },
 });
+  
