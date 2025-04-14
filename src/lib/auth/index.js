@@ -62,6 +62,16 @@ export const auth = betterAuth({
         isResetPassword: true,
       });
     },
+
+    onResetPassword: async ctx => {
+      const redirectUrl = `${env.FRONTEND_BASE_URL}?password_reset=success`;
+      return ctx.redirect(redirectUrl);
+    },
+
+    // ✅ Ajout correct du callbackURL pour le reset password
+    resetPassword: {
+      callbackUrl: env.FRONTEND_BASE_URL,
+    },
   },
 
   emailVerification: {
@@ -77,6 +87,16 @@ export const auth = betterAuth({
         buttonText: 'Vérifier mon email',
         isVerificationEmail: true,
       });
+    },
+
+    onVerified: async ctx => {
+      const redirectUrl = `${env.FRONTEND_BASE_URL}?email_verified=success`;
+      return ctx.redirect(redirectUrl);
+    },
+
+    // ✅ Ajout correct du callbackURL pour la vérification d'email
+    verification: {
+      callbackUrl: env.FRONTEND_BASE_URL,
     },
   },
 
