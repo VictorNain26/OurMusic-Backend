@@ -1,4 +1,3 @@
-// src/spotify.js
 import axios from 'axios';
 import path from 'path';
 import fs from 'fs/promises';
@@ -11,8 +10,8 @@ const {
   SPOTIFY_REFRESH_TOKEN,
   PLAYLIST_PATH,
   COOKIE_FILE,
-  FIREFOX_FOLDER = '/app/mozilla/firefox',
-  FIREFOX_PROFILE = 'jixmpje9.default',
+  FIREFOX_FOLDER,
+  FIREFOX_PROFILE,
 } = Bun.env;
 
 if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_USER_ID) {
