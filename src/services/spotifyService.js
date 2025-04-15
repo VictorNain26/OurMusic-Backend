@@ -16,7 +16,7 @@ import path from 'path';
 import axios from 'axios';
 
 // ✅ Handle scraping des genres Spotify + création playlists
-export async function handleSpotifyScrape(send) {
+export async function handleSpotifyScrape(user, send) {
   try {
     const genres = ['indie+rock', 'pop', 'rock', 'electronica', 'hip+hop'];
     const excludedTags = ['trance', 'metal', 'dubstep'];
@@ -86,7 +86,7 @@ export async function handleSpotifyScrape(send) {
 }
 
 // ✅ Handle synchronisation globale
-export async function handleSpotifySyncAll(send) {
+export async function handleSpotifySyncAll(user, send) {
   try {
     send({ message: `🔁 Admin a lancé une synchronisation globale.` });
 
@@ -116,7 +116,7 @@ export async function handleSpotifySyncAll(send) {
 }
 
 // ✅ Handle synchronisation par playlist ID
-export async function handleSpotifySyncById(send, playlistId) {
+export async function handleSpotifySyncById(user, send, playlistId) {
   try {
     send({ message: `🔁 Sync de la playlist ${playlistId}` });
 
