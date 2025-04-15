@@ -16,12 +16,12 @@ import path from 'path';
 import axios from 'axios';
 
 // ✅ Handle scraping des genres Spotify + création playlists
-export async function handleSpotifyScrape(ctx, send) {
+export async function handleSpotifyScrape(user, send) {
   try {
     const genres = ['indie+rock', 'pop', 'rock', 'electronica', 'hip+hop'];
     const excludedTags = ['trance', 'metal', 'dubstep'];
 
-    send({ message: `👤 Admin ${ctx.user?.username} a lancé un scraping.` });
+    send({ message: `👤 Admin ${user?.email || user?.name} a lancé un scraping.` });
 
     const scrapedTracks = await scrapeTracksForGenres(genres, 1, excludedTags);
     const token = await getSpotifyAccessToken();
@@ -86,9 +86,9 @@ export async function handleSpotifyScrape(ctx, send) {
 }
 
 // ✅ Handle synchronisation globale
-export async function handleSpotifySyncAll(ctx, send) {
+export async function handleSpotifySyncAll(user, send) {
   try {
-    send({ message: `🔁 Admin ${ctx.user.email} a lancé une synchronisation globale.` });
+    send({ message: `🔁 Admin ${user.email} a lancé une synchronisation globale.` });
 
     await createCookieFile(send);
     await ensureDirectoryExists('/root/.spotdl/temp');
@@ -116,9 +116,9 @@ export async function handleSpotifySyncAll(ctx, send) {
 }
 
 // ✅ Handle synchronisation par playlist ID
-export async function handleSpotifySyncById(ctx, send, playlistId) {
+export async function handleSpotifySyncById(user, send, playlistId) {
   try {
-    send({ message: `🔁 Sync de la playlist ${playlistId} par ${ctx.user.email}` });
+    send({ message: `🔁 Sync de la playlist ${playlistId} par ${user.email}` });
 
     await createCookieFile(send);
     await ensureDirectoryExists('/root/.spotdl/temp');

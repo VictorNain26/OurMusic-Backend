@@ -8,11 +8,10 @@ import {
 
 export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
 
-  // ✅ Scrape Spotify (admin uniquement)
   .get(
     '/scrape',
     ({ user }) => {
-      return createSSEStream(send => handleSpotifyScrape({ user }, send));
+      return createSSEStream(send => handleSpotifyScrape(user, send));
     },
     {
       auth: {
@@ -21,11 +20,10 @@ export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
     }
   )
 
-  // ✅ Sync toutes les playlists (admin uniquement)
   .get(
     '/sync',
     ({ user }) => {
-      return createSSEStream(send => handleSpotifySyncAll({ user }, send));
+      return createSSEStream(send => handleSpotifySyncAll(user, send));
     },
     {
       auth: {
@@ -34,11 +32,10 @@ export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
     }
   )
 
-  // ✅ Sync playlist par ID (admin uniquement)
   .get(
     '/sync/:id',
     ({ user, params }) => {
-      return createSSEStream(send => handleSpotifySyncById({ user }, send, params.id));
+      return createSSEStream(send => handleSpotifySyncById(user, send, params.id));
     },
     {
       auth: {
