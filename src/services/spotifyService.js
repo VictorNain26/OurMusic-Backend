@@ -88,7 +88,7 @@ export async function handleSpotifyScrape(ctx, send) {
 // ✅ Handle synchronisation globale
 export async function handleSpotifySyncAll(ctx, send) {
   try {
-    send({ message: `🔁 Admin ${ctx.user.username} a lancé une synchronisation globale.` });
+    send({ message: `🔁 Admin ${ctx.user.email} a lancé une synchronisation globale.` });
 
     await createCookieFile(send);
     await ensureDirectoryExists('/root/.spotdl/temp');
@@ -118,7 +118,7 @@ export async function handleSpotifySyncAll(ctx, send) {
 // ✅ Handle synchronisation par playlist ID
 export async function handleSpotifySyncById(ctx, send, playlistId) {
   try {
-    send({ message: `🔁 Sync de la playlist ${playlistId} par ${ctx.user.username}` });
+    send({ message: `🔁 Sync de la playlist ${playlistId} par ${ctx.user.email}` });
 
     await createCookieFile(send);
     await ensureDirectoryExists('/root/.spotdl/temp');
