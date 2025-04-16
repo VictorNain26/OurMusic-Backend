@@ -1,11 +1,14 @@
 export function createSSEStream(handler) {
   let controllerRef;
+  let isClosed = false;
 
   return new ReadableStream({
     start(controller) {
       controllerRef = controller;
 
       const sendEvent = data => {
+        if (isClosed) return;
+
         try {
           const json = JSON.stringify({ pub: data });
           controller.enqueue(`data: ${json}\n\n`);
@@ -15,33 +18,41 @@ export function createSSEStream(handler) {
           try {
             controller.error(err);
           } catch (e) {
-            console.warn('[SSE] Impossible de notifier l’erreur, flux déjà fermé.');
+            console.warn('[SSE] Impossible d’envoyer l’erreur, flux déjà fermé.');
           }
+          isClosed = true;
         }
       };
 
+      // 🟢 Connexion initiale
       sendEvent({ connect: { time: Date.now() } });
 
+      // ❤️ Battement de cœur toutes les 25s pour éviter timeouts nginx/proxy
       const heartbeat = setInterval(() => {
-        sendEvent({ heartbeat: Date.now() });
+        if (!isClosed) sendEvent({ heartbeat: Date.now() });
       }, 25000);
 
+      // ⛓️ Appel de ton handler principal
       handler(sendEvent)
         .catch(err => {
           console.error('[SSE handler error]', err);
           sendEvent({ error: err.message || 'Erreur SSE interne' });
         })
         .finally(() => {
+          if (!isClosed && !controller.locked) {
+            controller.close();
+            isClosed = true;
+          }
           clearInterval(heartbeat);
-          if (!controller.locked) controller.close();
-          console.log('[SSE] Stream fermé proprement');
+          console.log('[SSE] Stream terminé proprement');
         });
     },
 
     cancel() {
-      console.log('[SSE] Flux annulé par le client');
-      if (controllerRef && !controllerRef.locked) {
+      console.log('[SSE] Annulé par le client (déconnexion)');
+      if (controllerRef && !controllerRef.locked && !isClosed) {
         controllerRef.close();
+        isClosed = true;
       }
     },
   });
