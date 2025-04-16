@@ -110,6 +110,7 @@ export async function createSyncFile(playlist, playlistDirPath, sendEvent) {
     sendEvent({
       error: `Erreur lors de la création du fichier de synchronisation pour '${playlist.name}' : ${err.message}`,
     });
+    throw err; // ⛔ Coupe le flux SSE si erreur
   }
   return syncFilePath;
 }
@@ -131,6 +132,7 @@ export async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent)
     sendEvent({
       error: `Erreur lors de la synchronisation du fichier '${syncFilePath}' : ${err.message}`,
     });
+    throw err; // ⛔ Coupe le flux SSE si erreur
   }
 }
 
