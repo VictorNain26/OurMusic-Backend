@@ -1,6 +1,10 @@
 export function createSSEStream(handler) {
+  let controllerRef;
+
   return new ReadableStream({
     start(controller) {
+      controllerRef = controller;
+
       const sendEvent = data => {
         try {
           const json = JSON.stringify({ pub: data });
@@ -8,7 +12,11 @@ export function createSSEStream(handler) {
           console.log('[SSE]', json);
         } catch (err) {
           console.error('[SSE enqueue error]', err);
-          controller.error(err); // ⛔ Stoppe le flux SSE côté client
+          try {
+            controller.error(err);
+          } catch (e) {
+            console.warn('[SSE] Impossible de notifier l’erreur, flux déjà fermé.');
+          }
         }
       };
 
@@ -28,6 +36,13 @@ export function createSSEStream(handler) {
           if (!controller.locked) controller.close();
           console.log('[SSE] Stream fermé proprement');
         });
+    },
+
+    cancel() {
+      console.log('[SSE] Flux annulé par le client');
+      if (controllerRef && !controllerRef.locked) {
+        controllerRef.close();
+      }
     },
   });
 }
