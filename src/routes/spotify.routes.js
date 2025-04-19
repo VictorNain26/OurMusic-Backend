@@ -1,45 +1,47 @@
+// src/routes/spotify.routes.js
 import { Elysia } from 'elysia';
-import { createSSEStream } from '../utils/sse.js';
-import {
-  handleSpotifyScrape,
-  handleSpotifySyncAll,
-  handleSpotifySyncById,
-  cleanupSpotdlFiles,
-  checkSpotdlInstalled,
-} from '../services/spotifyService.js';
+import { spotifyService } from '../services/spotifyService';
+import { sendSSE } from '../lib/sse';
+import { authenticate } from '../middleware/authenticate';
+import { z } from 'zod';
 
 export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
-
-  // 🎯 Scraper automatiquement plusieurs genres
-  .get('/scrape', ({ user }) => createSSEStream(send => handleSpotifyScrape(user, send)), {
-    auth: { role: 'admin' },
+  .use(authenticate)
+  .get('/sync', async ({ user, request, set }) => {
+    return sendSSE(request, async send => {
+      try {
+        await spotifyService.syncAllPlaylists(send, user.id);
+      } catch (err) {
+        console.error('[syncAllPlaylists] Error:', err);
+        send({ message: '❌ Erreur lors de la synchronisation globale.', error: err.message });
+        throw err;
+      }
+    });
   })
+  .get('/sync/:id', async ({ user, request, params, set }) => {
+    const { id } = z.object({ id: z.string().min(3) }).parse(params);
 
-  // 🔁 Synchroniser toutes les playlists "OurMusic"
-  .get('/sync', ({ user }) => createSSEStream(send => handleSpotifySyncAll(user, send)), {
-    auth: { role: 'admin' },
+    return sendSSE(request, async send => {
+      try {
+        await spotifyService.syncSinglePlaylist(send, id, user.id);
+      } catch (err) {
+        console.error('[syncSinglePlaylist] Error:', err);
+        send({
+          message: '❌ Erreur lors de la synchronisation de la playlist.',
+          error: err.message,
+        });
+        throw err;
+      }
+    });
   })
-
-  // 🎵 Synchroniser une playlist spécifique par ID
-  .get(
-    '/sync/:id',
-    ({ user, params }) => createSSEStream(send => handleSpotifySyncById(user, send, params.id)),
-    { auth: { role: 'admin' } }
-  )
-
-  // 🔍 Vérifier que spotDL est installé
-  .get(
-    '/spotdl/version',
-    async () => {
-      const version = await checkSpotdlInstalled();
-      return { version };
-    },
-    {
-      auth: { role: 'admin' },
-    }
-  )
-
-  // 🧹 Nettoyer les fichiers .spotdl et .temp
-  .get('/spotdl/cleanup', () => createSSEStream(send => cleanupSpotdlFiles(send)), {
-    auth: { role: 'admin' },
+  .get('/scrape', async ({ user, request }) => {
+    return sendSSE(request, async send => {
+      try {
+        await spotifyService.scrapeAllPlaylists(send, user.id);
+      } catch (err) {
+        console.error('[scrapeAllPlaylists] Error:', err);
+        send({ message: '❌ Erreur lors du scraping des playlists.', error: err.message });
+        throw err;
+      }
+    });
   });

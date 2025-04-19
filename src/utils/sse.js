@@ -1,59 +1,38 @@
-export function createSSEStream(handler) {
-  let controllerRef;
-  let isClosed = false;
-
-  return new ReadableStream({
+export const sendSSE = async (request, handlerFn) => {
+  const stream = new ReadableStream({
     start(controller) {
-      controllerRef = controller;
-
-      const sendEvent = data => {
-        if (isClosed) return;
-
+      const send = data => {
         try {
-          const json = JSON.stringify({ pub: data });
-          controller.enqueue(`data: ${json}\n\n`);
-          console.log('[SSE]', json);
+          const payload = `data: ${JSON.stringify({ pub: data })}\n\n`;
+          controller.enqueue(new TextEncoder().encode(payload));
         } catch (err) {
-          console.error('[SSE enqueue error]', err);
-          try {
-            controller.error(err);
-          } catch (e) {
-            console.warn('[SSE] Impossible d’envoyer l’erreur, flux déjà fermé.');
-          }
-          isClosed = true;
+          console.error('[sendSSE → enqueue failed]', err);
         }
       };
 
-      // 🟢 Connexion initiale
-      sendEvent({ connect: { time: Date.now() } });
-
-      // ❤️ Battement de cœur toutes les 25s pour éviter timeouts nginx/proxy
-      const heartbeat = setInterval(() => {
-        if (!isClosed) sendEvent({ heartbeat: Date.now() });
-      }, 25000);
-
-      // ⛓️ Appel de ton handler principal
-      handler(sendEvent)
-        .catch(err => {
-          console.error('[SSE handler error]', err);
-          sendEvent({ error: err.message || 'Erreur SSE interne' });
+      Promise.resolve()
+        .then(() => handlerFn(send))
+        .then(() => {
+          controller.close();
         })
-        .finally(() => {
-          if (!isClosed && !controller.locked) {
-            controller.close();
-            isClosed = true;
-          }
-          clearInterval(heartbeat);
-          console.log('[SSE] Stream terminé proprement');
+        .catch(err => {
+          console.error('[sendSSE → handler error]', err);
+          send({ message: '❌ Une erreur est survenue.', error: err.message });
+          controller.close();
         });
     },
 
     cancel() {
-      console.log('[SSE] Annulé par le client (déconnexion)');
-      if (controllerRef && !controllerRef.locked && !isClosed) {
-        controllerRef.close();
-        isClosed = true;
-      }
+      console.info('[sendSSE] Fermeture de la connexion.');
     },
   });
-}
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    },
+  });
+};
