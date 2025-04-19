@@ -129,6 +129,7 @@ export async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent)
 
 export async function createCookieFile(sendEvent) {
   const cookieAgeLimit = 24 * 60 * 60 * 1000;
+
   try {
     const fileStats = await fs.stat(COOKIE_FILE);
     const age = Date.now() - fileStats.mtimeMs;
@@ -144,7 +145,8 @@ export async function createCookieFile(sendEvent) {
   }
 
   const cookiesFromBrowserArg = `firefox:${FIREFOX_FOLDER}/${FIREFOX_PROFILE}`;
-  const cmd = [
+
+  const buildCommand = (withProxy = false) => [
     'yt-dlp',
     '--cookies-from-browser',
     cookiesFromBrowserArg,
@@ -156,14 +158,26 @@ export async function createCookieFile(sendEvent) {
     '1',
     '--max-sleep-interval',
     '2',
+    ...(withProxy ? ['--proxy', 'https://us.smartproxy.com:10000'] : []),
     '--skip-download',
     'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
   ];
+
   try {
-    const output = await runCommand(cmd);
+    const output = await runCommand(buildCommand());
     sendEvent({ message: `Cookie créé avec succès : ${output}` });
-  } catch (err) {
-    sendEvent({ error: `Erreur lors de la création du cookie : ${err.message}` });
+  } catch (err1) {
+    sendEvent({ error: `⚠️ Première tentative échouée : ${err1.message}` });
+
+    // Retry avec proxy si erreur détectée
+    try {
+      sendEvent({ message: `🔁 Nouvelle tentative avec proxy Smartproxy...` });
+      const output = await runCommand(buildCommand(true));
+      sendEvent({ message: `✅ Cookie créé avec proxy : ${output}` });
+    } catch (err2) {
+      sendEvent({ error: `❌ Échec avec proxy également : ${err2.message}` });
+      throw err2;
+    }
   }
 }
 
