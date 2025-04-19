@@ -1,4 +1,3 @@
-// src/routes/spotify.routes.js
 import { Elysia } from 'elysia';
 import { spotifyService } from '../services/spotifyService';
 import { sendSSE } from '../lib/sse';
