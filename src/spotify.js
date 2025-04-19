@@ -2,6 +2,7 @@ import axios from 'axios';
 import path from 'path';
 import fs from 'fs/promises';
 import { runCommand, ensureDirectoryExists } from './utils/fileUtils.js';
+import { runCommandWithRetry } from './utils/runCommandWithRetry.js';
 import { spotifyRequestWithRetry } from './utils/spotifyApi.js';
 
 const {
@@ -95,7 +96,7 @@ export async function createSyncFile(playlist, playlistDirPath, sendEvent) {
     COOKIE_FILE,
   ];
   try {
-    const output = await runCommand(cmd);
+    const output = await runCommandWithRetry(cmd, sendEvent);
     sendEvent({ message: `Fichier de synchronisation créé pour '${playlist.name}' : ${output}` });
   } catch (err) {
     sendEvent({
@@ -117,7 +118,7 @@ export async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent)
     COOKIE_FILE,
   ];
   try {
-    const output = await runCommand(cmd);
+    const output = await runCommandWithRetry(cmd, sendEvent);
     sendEvent({ message: `Synchronisation réussie pour '${syncFilePath}' : ${output}` });
   } catch (err) {
     sendEvent({
@@ -129,7 +130,6 @@ export async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent)
 
 export async function createCookieFile(sendEvent) {
   const cookieAgeLimit = 24 * 60 * 60 * 1000;
-
   try {
     const fileStats = await fs.stat(COOKIE_FILE);
     const age = Date.now() - fileStats.mtimeMs;
@@ -145,8 +145,7 @@ export async function createCookieFile(sendEvent) {
   }
 
   const cookiesFromBrowserArg = `firefox:${FIREFOX_FOLDER}/${FIREFOX_PROFILE}`;
-
-  const buildCommand = (withProxy = false) => [
+  const cmd = [
     'yt-dlp',
     '--cookies-from-browser',
     cookiesFromBrowserArg,
@@ -158,26 +157,14 @@ export async function createCookieFile(sendEvent) {
     '1',
     '--max-sleep-interval',
     '2',
-    ...(withProxy ? ['--proxy', 'https://us.smartproxy.com:10000'] : []),
     '--skip-download',
     'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
   ];
-
   try {
-    const output = await runCommand(buildCommand());
+    const output = await runCommand(cmd);
     sendEvent({ message: `Cookie créé avec succès : ${output}` });
-  } catch (err1) {
-    sendEvent({ error: `⚠️ Première tentative échouée : ${err1.message}` });
-
-    // Retry avec proxy si erreur détectée
-    try {
-      sendEvent({ message: `🔁 Nouvelle tentative avec proxy Smartproxy...` });
-      const output = await runCommand(buildCommand(true));
-      sendEvent({ message: `✅ Cookie créé avec proxy : ${output}` });
-    } catch (err2) {
-      sendEvent({ error: `❌ Échec avec proxy également : ${err2.message}` });
-      throw err2;
-    }
+  } catch (err) {
+    sendEvent({ error: `Erreur lors de la création du cookie : ${err.message}` });
   }
 }
 
