@@ -13,16 +13,52 @@ import {
 import { scrapeTracksForGenres } from '../scraper.js';
 import { delay, ensureDirectoryExists, fileExists, runCommand } from '../utils/fileUtils.js';
 import path from 'path';
+import fs from 'fs/promises';
 import axios from 'axios';
 
-// ✅ Handle scraping des genres Spotify + création playlists
+const {
+  SPOTDL_FORMAT = 'mp3',
+  SPOTDL_BITRATE = '192k',
+  SPOTDL_THREADS = '4',
+  SPOTDL_FFMPEG_PATH = 'ffmpeg',
+  SPOTDL_USE_USER_AUTH = 'false',
+  PLAYLIST_PATH,
+} = Bun.env;
+
+// ✅ Vérifie que spotDL est installé
+export async function checkSpotdlInstalled() {
+  return await runCommand(['spotdl', '--version']);
+}
+
+// ✅ Nettoyage automatique des fichiers inutiles (.temp, .spotdl)
+export async function cleanupSpotdlFiles(sendEvent) {
+  const allDirs = await fs.readdir(PLAYLIST_PATH);
+  for (const dir of allDirs) {
+    const fullPath = path.join(PLAYLIST_PATH, dir);
+    const stat = await fs.stat(fullPath);
+    if (!stat.isDirectory()) continue;
+
+    const files = await fs.readdir(fullPath);
+    for (const file of files) {
+      if (file.endsWith('.temp') || file.endsWith('.spotdl')) {
+        const filePath = path.join(fullPath, file);
+        await fs.unlink(filePath);
+        sendEvent({ message: `🗑️ Fichier supprimé : ${filePath}` });
+      }
+    }
+  }
+
+  sendEvent({ message: `✅ Nettoyage terminé.` });
+}
+
+// ✅ Scraping des genres Spotify + création de playlists
 export async function handleSpotifyScrape(user, send) {
+  const genres = ['indie+rock', 'pop', 'rock', 'electronica', 'hip+hop'];
+  const excludedTags = ['trance', 'metal', 'dubstep'];
+
+  send({ message: `👤 Admin a lancé un scraping.` });
+
   try {
-    const genres = ['indie+rock', 'pop', 'rock', 'electronica', 'hip+hop'];
-    const excludedTags = ['trance', 'metal', 'dubstep'];
-
-    send({ message: `👤 Admin a lancé un scraping.` });
-
     const scrapedTracks = await scrapeTracksForGenres(genres, 1, excludedTags);
     const token = await getSpotifyAccessToken();
     const userPlaylists = await getAllUserPlaylists(token);
@@ -44,7 +80,7 @@ export async function handleSpotifyScrape(user, send) {
           send({ message: `❌ Introuvable sur Spotify : ${track.artist} - ${track.title}` });
         }
 
-        await delay(300); // 👌 On garde un délai pour éviter le rate-limit
+        await delay(300);
       }
 
       send({
@@ -74,22 +110,22 @@ export async function handleSpotifyScrape(user, send) {
       await trimPlaylist(playlist, token, send);
 
       send({ message: `✅ Traitement terminé pour ${playlistName}` });
-
       await delay(1000);
     }
 
     send({ message: '🏁 Scraping complet terminé pour tous les genres.' });
   } catch (err) {
     console.error('[handleSpotifyScrape Error]', err);
-    send({ error: 'Erreur serveur pendant le scraping Spotify' });
+    send({ error: err.message || 'Erreur pendant le scraping Spotify' });
+    throw err;
   }
 }
 
-// ✅ Handle synchronisation globale
+// ✅ Synchronisation de toutes les playlists
 export async function handleSpotifySyncAll(user, send) {
-  try {
-    send({ message: `🔁 Admin a lancé une synchronisation globale.` });
+  send({ message: `🔁 Admin a lancé une synchronisation globale.` });
 
+  try {
     await createCookieFile(send);
     await ensureDirectoryExists('/root/.spotdl/temp');
 
@@ -111,15 +147,16 @@ export async function handleSpotifySyncAll(user, send) {
     send({ message: '✅ Synchronisation globale terminée.' });
   } catch (err) {
     console.error('[handleSpotifySyncAll Error]', err);
-    send({ error: 'Erreur serveur pendant la synchronisation globale.' });
+    send({ error: err.message || 'Erreur pendant la synchronisation globale' });
+    throw err;
   }
 }
 
-// ✅ Handle synchronisation par playlist ID
+// ✅ Synchronisation d’une playlist spécifique par ID
 export async function handleSpotifySyncById(user, send, playlistId) {
-  try {
-    send({ message: `🔁 Sync de la playlist ${playlistId}` });
+  send({ message: `🔁 Sync de la playlist ${playlistId}` });
 
+  try {
     await createCookieFile(send);
     await ensureDirectoryExists('/root/.spotdl/temp');
 
@@ -129,7 +166,7 @@ export async function handleSpotifySyncById(user, send, playlistId) {
 
     if (!playlist) {
       send({ error: 'Playlist introuvable.' });
-      return;
+      throw new Error('Playlist introuvable.');
     }
 
     send({ message: `▶ Synchronisation de ${playlist.name}` });
@@ -139,41 +176,36 @@ export async function handleSpotifySyncById(user, send, playlistId) {
     send({ message: `✅ Sync terminée : ${playlist.name}` });
   } catch (err) {
     console.error('[handleSpotifySyncById Error]', err);
-    send({ error: 'Erreur serveur pendant la synchronisation de la playlist' });
+    send({ error: err.message || 'Erreur pendant la synchronisation' });
+    throw err;
   }
 }
 
-// ✅ Utilitaire : Sync d'une playlist unique
+// 🔁 Sync d’une seule playlist (utilitaire interne)
 async function syncSinglePlaylist(playlist, token, send) {
-  try {
-    const playlistDirPath = await createPlaylistDirectory(playlist);
-    const safeName = playlist.name.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
-    const syncFile = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
+  const playlistDirPath = await createPlaylistDirectory(playlist);
+  const safeName = playlist.name.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+  const syncFile = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
 
-    if (await fileExists(syncFile)) {
-      send({ message: `➡️ Fichier de sync trouvé : ${syncFile}` });
-      await syncPlaylistFile(syncFile, playlistDirPath, send);
-    } else {
-      send({ message: `📂 Création du fichier de sync : ${syncFile}` });
-      await createSyncFile(playlist, playlistDirPath, send);
-      await syncPlaylistFile(syncFile, playlistDirPath, send);
-    }
-  } catch (err) {
-    console.error(`[syncSinglePlaylist Error for ${playlist.name}]`, err);
-    send({ error: `Erreur pendant le traitement de la playlist ${playlist.name}` });
+  if (await fileExists(syncFile)) {
+    send({ message: `➡️ Fichier de sync trouvé : ${syncFile}` });
+    await syncPlaylistFile(syncFile, playlistDirPath, send);
+  } else {
+    send({ message: `📂 Création du fichier de sync : ${syncFile}` });
+    await createSyncFile(playlist, playlistDirPath, send);
+    await syncPlaylistFile(syncFile, playlistDirPath, send);
   }
 }
 
-// ✅ Utilitaire : Ajout des nouveaux morceaux à la playlist
+// ➕ Ajoute les morceaux manquants à la playlist
 async function addTracksIfNotExist(playlist, uris, token, send) {
   try {
-    const existingUris = (
-      await axios.get(
-        `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?fields=items(track(uri))&limit=100`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-    ).data.items.map(i => i.track.uri);
+    const response = await axios.get(
+      `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?fields=items(track(uri))&limit=100`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
+    const existingUris = response.data.items.map(i => i.track.uri);
     const newUris = uris.filter(uri => !existingUris.includes(uri));
 
     if (newUris.length) {
@@ -188,6 +220,7 @@ async function addTracksIfNotExist(playlist, uris, token, send) {
     }
   } catch (err) {
     console.error('[addTracksIfNotExist Error]', err);
-    send({ error: `Erreur lors de l'ajout de morceaux à ${playlist.name}` });
+    send({ error: `Erreur ajout morceaux à ${playlist.name}` });
+    throw err;
   }
 }

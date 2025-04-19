@@ -2,6 +2,7 @@ import axios from 'axios';
 import path from 'path';
 import fs from 'fs/promises';
 import { runCommand, ensureDirectoryExists } from './utils/fileUtils.js';
+import { spotifyRequestWithRetry } from './utils/spotifyApi.js';
 
 const {
   SPOTIFY_CLIENT_ID,
@@ -55,27 +56,17 @@ export async function getSpotifyAccessToken() {
 }
 
 export async function getOurMusicPlaylists(token) {
-  try {
-    const response = await axios.get(
-      `https://api.spotify.com/v1/users/${SPOTIFY_USER_ID}/playlists`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!response.data.items) throw new Error('Structure inattendue des données de Spotify.');
-    return response.data.items.filter(playlist => playlist.name.toLowerCase().includes('ourmusic'));
-  } catch (error) {
-    if (error.response && error.response.status === 401) {
-      throw new Error('Token Spotify invalide ou insuffisamment autorisé (scopes manquants).');
-    }
-    console.error('Erreur lors de la récupération des playlists Spotify:', error.message);
-    throw new Error('Impossible de récupérer les playlists Spotify.');
-  }
+  const url = `https://api.spotify.com/v1/users/${SPOTIFY_USER_ID}/playlists`;
+  const response = await spotifyRequestWithRetry(url, token);
+  if (!response.data.items) throw new Error('Structure inattendue des données de Spotify.');
+  return response.data.items.filter(playlist => playlist.name.toLowerCase().includes('ourmusic'));
 }
 
 export async function getAllUserPlaylists(token) {
   let allPlaylists = [];
   let url = 'https://api.spotify.com/v1/me/playlists?limit=50';
   while (url) {
-    const response = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+    const response = await spotifyRequestWithRetry(url, token);
     allPlaylists = allPlaylists.concat(response.data.items);
     url = response.data.next;
   }
@@ -110,7 +101,7 @@ export async function createSyncFile(playlist, playlistDirPath, sendEvent) {
     sendEvent({
       error: `Erreur lors de la création du fichier de synchronisation pour '${playlist.name}' : ${err.message}`,
     });
-    throw err; // ⛔ Coupe le flux SSE si erreur
+    throw err;
   }
   return syncFilePath;
 }
@@ -132,12 +123,12 @@ export async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent)
     sendEvent({
       error: `Erreur lors de la synchronisation du fichier '${syncFilePath}' : ${err.message}`,
     });
-    throw err; // ⛔ Coupe le flux SSE si erreur
+    throw err;
   }
 }
 
 export async function createCookieFile(sendEvent) {
-  const cookieAgeLimit = 24 * 60 * 60 * 1000; // 24h en ms
+  const cookieAgeLimit = 24 * 60 * 60 * 1000;
   try {
     const fileStats = await fs.stat(COOKIE_FILE);
     const age = Date.now() - fileStats.mtimeMs;
@@ -151,6 +142,7 @@ export async function createCookieFile(sendEvent) {
       throw error;
     }
   }
+
   const cookiesFromBrowserArg = `firefox:${FIREFOX_FOLDER}/${FIREFOX_PROFILE}`;
   const cmd = [
     'yt-dlp',
@@ -158,6 +150,12 @@ export async function createCookieFile(sendEvent) {
     cookiesFromBrowserArg,
     '--cookies',
     COOKIE_FILE,
+    '--user-agent',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
+    '--sleep-interval',
+    '1',
+    '--max-sleep-interval',
+    '2',
     '--skip-download',
     'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
   ];
@@ -173,9 +171,7 @@ export async function searchTrackOnSpotify(artist, title, token) {
   const query = encodeURIComponent(`track:${title} artist:${artist}`);
   const url = `https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`;
   try {
-    const response = await axios.get(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await spotifyRequestWithRetry(url, token);
     if (response.data.tracks.items.length > 0) {
       return response.data.tracks.items[0].uri;
     }
@@ -190,7 +186,7 @@ export async function getAllPlaylistTracks(playlistId, token) {
   let tracks = [];
   let url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?fields=items(added_at,track(uri))&limit=100`;
   while (url) {
-    const response = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+    const response = await spotifyRequestWithRetry(url, token);
     tracks = tracks.concat(response.data.items);
     url = response.data.next;
   }
@@ -205,6 +201,7 @@ export async function trimPlaylist(playlist, token, sendEvent) {
     });
     return;
   }
+
   const tracksWithIndex = tracks.map((item, index) => ({
     index,
     added_at: item.added_at,
@@ -216,17 +213,17 @@ export async function trimPlaylist(playlist, token, sendEvent) {
   sendEvent({
     message: `Suppression de ${numberToRemove} morceaux les plus anciens dans la playlist "${playlist.name}".`,
   });
+
   for (const track of tracksToRemove) {
     try {
-      await axios.request({
-        url: `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        data: { tracks: [{ uri: track.uri, positions: [track.index] }] },
-      });
+      await spotifyRequestWithRetry(
+        `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
+        token,
+        'DELETE',
+        {
+          tracks: [{ uri: track.uri, positions: [track.index] }],
+        }
+      );
       sendEvent({ message: `Supprimé : ${track.uri} (position ${track.index})` });
     } catch (err) {
       sendEvent({
