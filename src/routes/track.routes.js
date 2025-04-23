@@ -2,8 +2,18 @@ import { Elysia } from 'elysia';
 import { validateBody } from '../lib/validate.js';
 import { likeTrackSchema } from '../validators/trackValidator.js';
 import * as trackService from '../services/trackService.js';
+import { auth } from '../lib/auth/index.js';
 
 export const trackRoutes = new Elysia({ prefix: '/api/track' })
+  .macro({
+    auth: {
+      async resolve({ error, request: { headers } }) {
+        const session = await auth.api.getSession({ headers });
+        if (!session) return error(401);
+        return { user: session.user, session: session.session };
+      },
+    },
+  })
 
   // ✅ Liker un morceau
   .post(
@@ -35,7 +45,6 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
     '/like/:trackId',
     async ({ user, params }) => {
       const { trackId } = params;
-
       if (!trackId || typeof trackId !== 'string') {
         return { status: 400, error: 'ID invalide' };
       }

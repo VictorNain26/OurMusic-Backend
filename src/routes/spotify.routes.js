@@ -7,8 +7,18 @@ import {
   cleanupSpotdlFiles,
   checkSpotdlInstalled,
 } from '../services/spotifyService.js';
+import { auth } from '../lib/auth/index.js';
 
 export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
+  .macro({
+    auth: {
+      async resolve({ error, request: { headers } }) {
+        const session = await auth.api.getSession({ headers });
+        if (!session) return error(401);
+        return { user: session.user, session: session.session };
+      },
+    },
+  })
 
   // 🎯 Scraper automatiquement plusieurs genres
   .get('/scrape', ({ user }) => createSSEStream(send => handleSpotifyScrape(user, send)), {
@@ -24,7 +34,9 @@ export const spotifyRoutes = new Elysia({ prefix: '/api/live/spotify' })
   .get(
     '/sync/:id',
     ({ user, params }) => createSSEStream(send => handleSpotifySyncById(user, send, params.id)),
-    { auth: { role: 'admin' } }
+    {
+      auth: { role: 'admin' },
+    }
   )
 
   // 🔍 Vérifier que spotDL est installé

@@ -7,66 +7,71 @@ import { spotifyRoutes } from './routes/spotify.routes.js';
 import { trackRoutes } from './routes/track.routes.js';
 
 const app = new Elysia()
-
-  // Log des requêtes entrantes
+  // 🌐 Log propre des requêtes
   .onRequest(({ request }) => {
-    const method = request.method;
-    const url = request.url;
-    const origin = request.headers.get('origin');
+    const { method, url, headers } = request;
+    const origin = headers.get('origin');
     const isPreflight = method === 'OPTIONS';
-
     console.log(
       `[${new Date().toISOString()}] 📥 ${method} ${url} ${isPreflight ? '(Preflight)' : ''} – Origin: ${origin}`
     );
   })
 
-  // ✅ Plugin: CORS toujours en premier
+  // ✅ Middleware CORS (toujours en premier)
   .use(
     cors({
       origin: env.ALLOWED_ORIGINS,
       credentials: true,
-      allowedHeaders: ['Content-Type', 'Authorization'],
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
     })
   )
 
-  // ✅ Plugin: Better Auth correctement monté après CORS + Helmet
+  // ✅ Authentification Better Auth + macro user/session
   .use(betterAuthPlugin)
 
-  // ✅ Routes de l'application
+  // ✅ Routes de l'API
   .use(trackRoutes)
   .use(spotifyRoutes)
 
-  // Healthcheck
+  // ✅ Healthcheck standard
   .get('/health', () => ({
     status: 'ok',
     uptime: process.uptime(),
   }))
 
-  // Root welcome
+  // ✅ Page d'accueil API
   .get('/', () => ({
     message: "Bienvenue sur l'API OurMusic 🎶",
   }))
 
-  // Global error handler
+  // ❌ Catch global des erreurs non gérées
   .onError(({ error }) => {
     console.error('[Global Error]', error);
-    return { status: 500, error: 'Erreur interne du serveur' };
+    return {
+      status: 500,
+      error: 'Erreur interne du serveur',
+    };
   })
 
-  // Log des réponses
+  // ✅ Log de sortie des réponses
   .onAfterHandle(({ request, response }) => {
-    const status = response?.status ?? 200;
-    console.log(`[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → ${status}`);
+    console.log(
+      `[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → ${response?.status ?? 200}`
+    );
   })
 
-  // Start server
+  // ✅ Lancement du serveur
   .listen({ port: env.PORT, hostname: '0.0.0.0' });
 
 console.log(`\n✅ OurMusic Backend est lancé et accessible :`);
 console.log(`➡️ Local : http://localhost:${env.PORT}`);
-console.log(`➡️ Nom de domaine : https://ourmusic-api.ovh\n`);
+console.log(`➡️ Prod  : https://ourmusic-api.ovh\n`);
 
-// Fatal errors
-process.on('uncaughtException', err => console.error('❌ Uncaught Exception:', err));
-process.on('unhandledRejection', reason => console.error('❌ Unhandled Rejection:', reason));
+// 🔥 Gestion des erreurs fatales
+process.on('uncaughtException', err => {
+  console.error('❌ Uncaught Exception:', err);
+});
+process.on('unhandledRejection', reason => {
+  console.error('❌ Unhandled Rejection:', reason);
+});
