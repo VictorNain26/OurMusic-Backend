@@ -128,42 +128,88 @@ export async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent)
 }
 
 export async function createCookieFile(sendEvent) {
-  const cookieAgeLimit = 24 * 60 * 60 * 1000;
+  const cookieAgeLimit = 24 * 60 * 60 * 1000; // 24 heures
+  let needToRegenerate = false;
+
   try {
     const fileStats = await fs.stat(COOKIE_FILE);
     const age = Date.now() - fileStats.mtimeMs;
-    if (age < cookieAgeLimit) {
-      sendEvent({ message: 'Le cookie est récent (< 24h), mise à jour non nécessaire.' });
-      return;
+    if (age >= cookieAgeLimit) {
+      needToRegenerate = true;
+      sendEvent({ message: '⌛ Cookie existant trop vieux (> 24h), régénération nécessaire.' });
+    } else {
+      sendEvent({ message: '✅ Cookie existant récent (< 24h), vérification de sa validité...' });
     }
   } catch (error) {
-    if (error.code !== 'ENOENT') {
+    if (error.code === 'ENOENT') {
+      needToRegenerate = true;
+      sendEvent({ message: '❌ Aucun cookie trouvé, création nécessaire.' });
+    } else {
       sendEvent({ error: `Erreur lors de la vérification du cookie : ${error.message}` });
       throw error;
     }
   }
 
-  const cookiesFromBrowserArg = `firefox:${FIREFOX_FOLDER}/${FIREFOX_PROFILE}`;
-  const cmd = [
-    'yt-dlp',
-    '--cookies-from-browser',
-    cookiesFromBrowserArg,
-    '--cookies',
-    COOKIE_FILE,
-    '--user-agent',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
-    '--sleep-interval',
-    '1',
-    '--max-sleep-interval',
-    '2',
-    '--skip-download',
-    'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
-  ];
-  try {
-    const output = await runCommand(cmd);
-    sendEvent({ message: `Cookie créé avec succès : ${output}` });
-  } catch (err) {
-    sendEvent({ error: `Erreur lors de la création du cookie : ${err.message}` });
+  // 🧠 Vérification rapide si le cookie actuel est fonctionnel (si existant)
+  if (!needToRegenerate) {
+    try {
+      const checkCmd = [
+        'yt-dlp',
+        '--cookies',
+        COOKIE_FILE,
+        '--skip-download',
+        '--quiet',
+        '--no-warnings',
+        'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
+      ];
+      const output = await runCommand(checkCmd);
+
+      if (output.includes('Sign in to confirm') || output.toLowerCase().includes('sign in to')) {
+        needToRegenerate = true;
+        sendEvent({ message: '⚠️ Cookie existant invalide, régénération nécessaire.' });
+      } else {
+        sendEvent({ message: '✅ Cookie existant validé.' });
+      }
+    } catch (err) {
+      needToRegenerate = true;
+      sendEvent({ message: '⚠️ Erreur lors du test du cookie existant, régénération nécessaire.' });
+    }
+  }
+
+  // 🔁 Si besoin, on régénère
+  if (needToRegenerate) {
+    const cookiesFromBrowserArg = `firefox:${FIREFOX_FOLDER}/${FIREFOX_PROFILE}`;
+    const cmd = [
+      'yt-dlp',
+      '--cookies-from-browser',
+      cookiesFromBrowserArg,
+      '--cookies',
+      COOKIE_FILE,
+      '--user-agent',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
+      '--sleep-interval',
+      '1',
+      '--max-sleep-interval',
+      '2',
+      '--skip-download',
+      'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
+    ];
+
+    try {
+      const output = await runCommand(cmd);
+
+      if (output.includes('Sign in to confirm') || output.toLowerCase().includes('sign in to')) {
+        sendEvent({
+          error: '🛑 Impossible de générer un cookie valide. Vérifie ton profil Firefox.',
+        });
+        throw new Error('🛑 Cookie Firefox invalide. Connecte-toi à YouTube puis régénère.');
+      }
+
+      sendEvent({ message: `✅ Nouveau cookie généré avec succès.` });
+    } catch (err) {
+      sendEvent({ error: `Erreur lors de la régénération du cookie : ${err.message}` });
+      throw err;
+    }
   }
 }
 
