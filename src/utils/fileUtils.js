@@ -12,19 +12,24 @@ export async function ensureDirectoryExists(dirPath) {
 }
 
 // ✅ Exécute une commande externe et retourne la sortie standard ou génère une erreur
-export async function runCommand(cmdArray, options = {}) {
-  const proc = Bun.spawnSync(cmdArray, {
-    ...options,
+export async function runCommand(command, args = [], options = {}) {
+  const proc = Bun.spawn([command, ...args], {
     stdout: 'pipe',
     stderr: 'pipe',
+    ...options,
   });
 
-  const stdout = new TextDecoder().decode(proc.stdout).trim();
-  const stderr = new TextDecoder().decode(proc.stderr).trim();
+  const stdout = new TextDecoder().decode((await proc.stdout?.text()) ?? '').trim();
+  const stderr = new TextDecoder().decode((await proc.stderr?.text()) ?? '').trim();
 
-  if (proc.exitCode !== 0 || stderr) {
+  if (proc.exitCode !== 0) {
     console.error('[runCommand Error]', stderr);
     throw new Error(stderr || `Commande échouée avec code ${proc.exitCode}`);
+  }
+
+  // Afficher le stderr en warning non bloquant
+  if (stderr) {
+    console.warn('[runCommand Warning]', stderr);
   }
 
   return stdout;

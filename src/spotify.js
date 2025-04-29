@@ -185,12 +185,6 @@ export async function createCookieFile(sendEvent) {
       cookiesFromBrowserArg,
       '--cookies',
       COOKIE_FILE,
-      '--user-agent',
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36',
-      '--sleep-interval',
-      '1',
-      '--max-sleep-interval',
-      '2',
       '--skip-download',
       'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
     ];

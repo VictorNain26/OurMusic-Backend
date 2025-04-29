@@ -20,9 +20,6 @@ function consoleLogger(payload) {
 
 (async () => {
   try {
-    await createCookieFile(consoleLogger);
-    await ensureDirectoryExists('/root/.spotdl/temp');
-
     await handleSpotifySyncById(fakeAdmin, consoleLogger, playlistId);
 
     console.log('✅ Synchronisation terminée pour la playlist', playlistId);
