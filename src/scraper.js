@@ -1,9 +1,11 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { getSpotifyAccessToken, getTrackDurationFromSpotify } from './spotify.js';
 
-// ✅ Scrape les morceaux par genres sur HypeMachine (1 seul morceau par artiste)
+// ✅ Scrape les morceaux par genres sur HypeMachine (1 seul morceau par artiste, durée max 6 min)
 export async function scrapeTracksForGenres(genres, pages = 1, excludedTags = []) {
   const results = {};
+  const token = await getSpotifyAccessToken();
 
   for (const genre of genres) {
     results[genre] = [];
@@ -14,8 +16,27 @@ export async function scrapeTracksForGenres(genres, pages = 1, excludedTags = []
         const res = await axios.get(url, {
           headers: { 'User-Agent': 'OurMusicBot/1.0' },
         });
-        const tracks = parseTracksFromHTML(res.data, excludedTags);
-        results[genre].push(...tracks);
+
+        const rawTracks = parseTracksFromHTML(res.data, excludedTags);
+
+        for (const track of rawTracks) {
+          const duration = await getTrackDurationFromSpotify(track.artist, track.title, token);
+          if (!duration) {
+            console.log(`⏱️ Ignoré (durée inconnue) : ${track.artist} - ${track.title}`);
+            continue;
+          }
+
+          if (duration <= 6 * 60 * 1000) {
+            results[genre].push(track);
+            console.log(
+              `🎵 Gardé : ${track.artist} - ${track.title} (${(duration / 60000).toFixed(2)} min)`
+            );
+          } else {
+            console.log(
+              `⏱️ Ignoré (>6min) : ${track.artist} - ${track.title} (${(duration / 60000).toFixed(2)} min)`
+            );
+          }
+        }
       } catch (error) {
         console.error(`[Scraper Error] (${url}): ${error.message}`);
       }
@@ -25,8 +46,7 @@ export async function scrapeTracksForGenres(genres, pages = 1, excludedTags = []
   return results;
 }
 
-// ✅ Parse les morceaux depuis le HTML obtenu
-// Ne garde qu'un seul morceau par artiste (le premier trouvé)
+// ✅ Parse les morceaux depuis le HTML obtenu (1 seul par artiste, sans tags exclus)
 function parseTracksFromHTML(html, excludedTags = []) {
   const $ = cheerio.load(html);
   const tracks = [];
@@ -53,4 +73,3 @@ function parseTracksFromHTML(html, excludedTags = []) {
 
   return tracks;
 }
-  

@@ -272,3 +272,18 @@ export async function trimPlaylist(playlist, token, sendEvent) {
     }
   }
 }
+
+export async function getTrackDurationFromSpotify(artist, title, token) {
+  const query = encodeURIComponent(`track:${title} artist:${artist}`);
+  const url = `https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`;
+
+  try {
+    const response = await spotifyRequestWithRetry(url, token);
+    const item = response.data.tracks.items[0];
+    if (!item) return null;
+    return item.duration_ms;
+  } catch (err) {
+    console.error(`[Spotify Duration Error] ${artist} - ${title} → ${err.message}`);
+    return null;
+  }
+}
