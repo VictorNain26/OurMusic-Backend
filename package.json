@@ -31,6 +31,7 @@
     "elysiajs-helmet": "^1.0.2",
     "html-to-text": "^9.0.5",
     "nodemailer": "^6.10.0",
+    "p-ratelimit": "^1.0.1",
     "pg": "^8.14.1",
     "valibot": "^1.0.0"
   }
