@@ -1,20 +1,9 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { pRateLimit } from 'p-ratelimit';
-import { getSpotifyAccessToken, getTrackDurationFromSpotify } from './spotify.js';
 
-// ✅ Création du rate limiter (max 10 requêtes/s, 1 à la fois)
-const limiter = pRateLimit({
-  interval: 1000,
-  rate: 10,
-  concurrency: 1,
-  maxDelay: 5000,
-});
-
-// ✅ Scrape HypeMachine par genre, exclut les tags et les morceaux > 6 min
+// ✅ Scrape les morceaux par genres sur HypeMachine (1 seul morceau par artiste)
 export async function scrapeTracksForGenres(genres, pages = 1, excludedTags = []) {
   const results = {};
-  const token = await getSpotifyAccessToken();
 
   for (const genre of genres) {
     results[genre] = [];
@@ -27,38 +16,9 @@ export async function scrapeTracksForGenres(genres, pages = 1, excludedTags = []
         });
 
         const rawTracks = parseTracksFromHTML(res.data, excludedTags);
+        console.log(`📥 ${rawTracks.length} morceaux extraits pour ${genre} (page ${page})`);
 
-        const filteredTracks = await Promise.all(
-          rawTracks.map(track =>
-            limiter(() => getTrackDurationFromSpotify(track.artist, track.title, token))
-              .then(duration => {
-                if (!duration) {
-                  console.log(`⏱️ Ignoré (durée inconnue) : ${track.artist} - ${track.title}`);
-                  return null;
-                }
-
-                if (duration <= 6 * 60 * 1000) {
-                  console.log(
-                    `🎵 Gardé : ${track.artist} - ${track.title} (${(duration / 60000).toFixed(2)} min)`
-                  );
-                  return track;
-                } else {
-                  console.log(
-                    `⏱️ Ignoré (>6min) : ${track.artist} - ${track.title} (${(duration / 60000).toFixed(2)} min)`
-                  );
-                  return null;
-                }
-              })
-              .catch(err => {
-                console.warn(
-                  `⚠️ Erreur Spotify : ${track.artist} - ${track.title} → ${err.message}`
-                );
-                return null;
-              })
-          )
-        );
-
-        results[genre].push(...filteredTracks.filter(Boolean));
+        results[genre].push(...rawTracks);
       } catch (error) {
         console.error(`[Scraper Error] (${url}): ${error.message}`);
       }
@@ -68,7 +28,8 @@ export async function scrapeTracksForGenres(genres, pages = 1, excludedTags = []
   return results;
 }
 
-// ✅ Parsing HTML de HypeMachine
+// ✅ Parse les morceaux depuis le HTML obtenu
+// Ne garde qu'un seul morceau par artiste (le premier trouvé)
 function parseTracksFromHTML(html, excludedTags = []) {
   const $ = cheerio.load(html);
   const tracks = [];

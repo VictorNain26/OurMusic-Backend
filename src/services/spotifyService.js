@@ -51,7 +51,7 @@ export async function cleanupSpotdlFiles(sendEvent) {
   sendEvent({ message: `✅ Nettoyage terminé.` });
 }
 
-// ✅ Scraping des genres Spotify + création de playlists
+// ✅ Scraping HypeMachine + ajout brut sur Spotify
 export async function handleSpotifyScrape(user, send) {
   const genres = ['indie+rock', 'pop', 'rock', 'electronica', 'hip+hop'];
   const excludedTags = ['trance', 'metal', 'dubstep'];
@@ -209,12 +209,16 @@ async function addTracksIfNotExist(playlist, uris, token, send) {
     const newUris = uris.filter(uri => !existingUris.includes(uri));
 
     if (newUris.length) {
-      await axios.post(
-        `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
-        { uris: newUris },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      send({ message: `🎶 ${newUris.length} titres ajoutés à ${playlist.name}` });
+      for (let i = 0; i < newUris.length; i += 50) {
+        const chunk = newUris.slice(i, i + 50);
+        await axios.post(
+          `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
+          { uris: chunk },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        send({ message: `🎶 ${chunk.length} titres ajoutés à ${playlist.name}` });
+        await delay(300);
+      }
     } else {
       send({ message: `✅ Aucun nouveau titre à ajouter dans ${playlist.name}` });
     }

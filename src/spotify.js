@@ -3,6 +3,14 @@ import path from 'path';
 import fs from 'fs/promises';
 import { runCommand, ensureDirectoryExists } from './utils/fileUtils.js';
 import { spotifyRequestWithRetry } from './utils/spotifyApi.js';
+import { pRateLimit } from 'p-ratelimit';
+
+export const spotifyLimiter = pRateLimit({
+  interval: 1000,
+  rate: 10,
+  concurrency: 1,
+  maxDelay: 5000,
+});
 
 const {
   SPOTIFY_CLIENT_ID,
@@ -18,7 +26,6 @@ const {
 if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_USER_ID) {
   throw new Error("Les variables d'environnement Spotify doivent être définies.");
 }
-
 if (!PLAYLIST_PATH || !COOKIE_FILE) {
   throw new Error('Les variables PLAYLIST_PATH et COOKIE_FILE doivent être définies.');
 }
@@ -43,16 +50,15 @@ export async function getSpotifyAccessToken() {
         client_secret: SPOTIFY_CLIENT_SECRET,
       });
 
-  try {
-    const response = await axios.post('https://accounts.spotify.com/api/token', data, {
+  const response = await spotifyLimiter(() =>
+    axios.post('https://accounts.spotify.com/api/token', data, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    });
-    cachedToken = response.data.access_token;
-    tokenExpiry = now + (response.data.expires_in - 60) * 1000;
-    return cachedToken;
-  } catch (error) {
-    throw new Error('Erreur récupération token Spotify: ' + error.message);
-  }
+    })
+  );
+
+  cachedToken = response.data.access_token;
+  tokenExpiry = now + (response.data.expires_in - 60) * 1000;
+  return cachedToken;
 }
 
 export async function getOurMusicPlaylists(token) {
@@ -117,7 +123,7 @@ export async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent)
     COOKIE_FILE,
   ];
   try {
-    const output = await runCommand(cmd);
+    const output = await spotifyLimiter(() => runCommand(cmd));
     sendEvent({ message: `Synchronisation réussie pour '${syncFilePath}' : ${output}` });
   } catch (err) {
     sendEvent({
@@ -128,7 +134,7 @@ export async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent)
 }
 
 export async function createCookieFile(sendEvent) {
-  const cookieAgeLimit = 24 * 60 * 60 * 1000; // 24 heures
+  const cookieAgeLimit = 24 * 60 * 60 * 1000;
   let needToRegenerate = false;
 
   try {
@@ -150,7 +156,6 @@ export async function createCookieFile(sendEvent) {
     }
   }
 
-  // 🧠 Vérification rapide si le cookie actuel est fonctionnel (si existant)
   if (!needToRegenerate) {
     try {
       const checkCmd = [
@@ -170,13 +175,12 @@ export async function createCookieFile(sendEvent) {
       } else {
         sendEvent({ message: '✅ Cookie existant validé.' });
       }
-    } catch (err) {
+    } catch {
       needToRegenerate = true;
       sendEvent({ message: '⚠️ Erreur lors du test du cookie existant, régénération nécessaire.' });
     }
   }
 
-  // 🔁 Si besoin, on régénère
   if (needToRegenerate) {
     const cookiesFromBrowserArg = `firefox:${FIREFOX_FOLDER}/${FIREFOX_PROFILE}`;
     const cmd = [
@@ -207,21 +211,6 @@ export async function createCookieFile(sendEvent) {
   }
 }
 
-export async function searchTrackOnSpotify(artist, title, token) {
-  const query = encodeURIComponent(`track:${title} artist:${artist}`);
-  const url = `https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`;
-  try {
-    const response = await spotifyRequestWithRetry(url, token);
-    if (response.data.tracks.items.length > 0) {
-      return response.data.tracks.items[0].uri;
-    }
-    return null;
-  } catch (err) {
-    console.error(`Erreur lors de la recherche de "${artist} - ${title}" :`, err.message);
-    return null;
-  }
-}
-
 export async function getAllPlaylistTracks(playlistId, token) {
   let tracks = [];
   let url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?fields=items(added_at,track(uri))&limit=100`;
@@ -233,13 +222,28 @@ export async function getAllPlaylistTracks(playlistId, token) {
   return tracks;
 }
 
+export async function getDurationFromSpotifyTrackUri(uri, token) {
+  const trackId = uri.split(':').pop();
+
+  try {
+    const response = await spotifyLimiter(() =>
+      axios.get(`https://api.spotify.com/v1/tracks/${trackId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    );
+    return response.data.duration_ms;
+  } catch (err) {
+    console.warn(`⚠️ Erreur durée (track ${trackId}) :`, err.message);
+    return null;
+  }
+}
+
 export async function trimPlaylist(playlist, token, sendEvent) {
   const tracks = await getAllPlaylistTracks(playlist.id, token);
   if (tracks.length <= 50) {
     sendEvent({
       message: `La playlist "${playlist.name}" contient ${tracks.length} morceaux (pas de suppression nécessaire).`,
     });
-    return;
   }
 
   const tracksWithIndex = tracks.map((item, index) => ({
@@ -247,43 +251,59 @@ export async function trimPlaylist(playlist, token, sendEvent) {
     added_at: item.added_at,
     uri: item.track.uri,
   }));
-  tracksWithIndex.sort((a, b) => new Date(a.added_at) - new Date(b.added_at));
-  const numberToRemove = tracks.length - 50;
-  const tracksToRemove = tracksWithIndex.slice(0, numberToRemove);
-  sendEvent({
-    message: `Suppression de ${numberToRemove} morceaux les plus anciens dans la playlist "${playlist.name}".`,
-  });
 
-  for (const track of tracksToRemove) {
-    try {
-      await spotifyRequestWithRetry(
-        `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
-        token,
-        'DELETE',
-        {
-          tracks: [{ uri: track.uri, positions: [track.index] }],
-        }
-      );
-      sendEvent({ message: `Supprimé : ${track.uri} (position ${track.index})` });
-    } catch (err) {
-      sendEvent({
-        error: `Erreur lors de la suppression du morceau ${track.uri} : ${err.message}`,
-      });
+  // ✅ Suppression des morceaux trop longs
+  for (const track of tracksWithIndex) {
+    const durationMs = await getDurationFromSpotifyTrackUri(track.uri, token);
+    if (!durationMs) continue;
+
+    if (durationMs > 6 * 60 * 1000) {
+      sendEvent({ message: `🧹 Suppression (durée >6min) : ${track.uri}` });
+      try {
+        await spotifyRequestWithRetry(
+          `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
+          token,
+          'DELETE',
+          {
+            tracks: [{ uri: track.uri }],
+          }
+        );
+        sendEvent({ message: `✅ Supprimé : ${track.uri}` });
+      } catch (err) {
+        sendEvent({
+          error: `❌ Échec suppression ${track.uri} : ${err.message}`,
+        });
+      }
     }
   }
-}
 
-export async function getTrackDurationFromSpotify(artist, title, token) {
-  const query = encodeURIComponent(`track:${title} artist:${artist}`);
-  const url = `https://api.spotify.com/v1/search?q=${query}&type=track&limit=1`;
+  // ✅ Suppression des plus anciens si > 50 morceaux
+  if (tracksWithIndex.length > 50) {
+    const numberToRemove = tracksWithIndex.length - 50;
+    const oldestTracks = tracksWithIndex
+      .sort((a, b) => new Date(a.added_at) - new Date(b.added_at))
+      .slice(0, numberToRemove);
 
-  try {
-    const response = await spotifyRequestWithRetry(url, token);
-    const item = response.data.tracks.items[0];
-    if (!item) return null;
-    return item.duration_ms;
-  } catch (err) {
-    console.error(`[Spotify Duration Error] ${artist} - ${title} → ${err.message}`);
-    return null;
+    sendEvent({
+      message: `🚮 Suppression des ${numberToRemove} morceaux les plus anciens de "${playlist.name}"`,
+    });
+
+    for (const track of oldestTracks) {
+      try {
+        await spotifyRequestWithRetry(
+          `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
+          token,
+          'DELETE',
+          {
+            tracks: [{ uri: track.uri }],
+          }
+        );
+        sendEvent({ message: `✅ Supprimé : ${track.uri} (ancien)` });
+      } catch (err) {
+        sendEvent({
+          error: `❌ Erreur suppression ancien : ${track.uri} → ${err.message}`,
+        });
+      }
+    }
   }
 }
