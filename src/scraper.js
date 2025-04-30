@@ -1,13 +1,14 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import rateLimit from 'p-ratelimit';
+import { pRateLimit } from 'p-ratelimit';
 import { getSpotifyAccessToken, getTrackDurationFromSpotify } from './spotify.js';
 
 // ✅ Création du rate limiter (max 10 requêtes/s, 1 à la fois)
-const limiter = rateLimit({
-  interval: 1000, // durée de la fenêtre
-  rate: 10, // max 10 appels dans cette fenêtre
-  concurrency: 1, // un seul appel en parallèle
+const limiter = pRateLimit({
+  interval: 1000,
+  rate: 10,
+  concurrency: 1,
+  maxDelay: 5000,
 });
 
 // ✅ Scrape HypeMachine par genre, exclut les tags et les morceaux > 6 min
