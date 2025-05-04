@@ -145,8 +145,8 @@ export async function createCookieFile(sendEvent) {
       needToRegenerate = true;
       sendEvent({ message: '❌ Aucun cookie trouvé, création nécessaire.' });
     } else {
-      sendEvent({ error: `Erreur lors de la vérification du cookie : ${error.message}` });
-      throw error;
+      sendEvent({ error: `Erreur lecture cookie : ${error.message}` });
+      return;
     }
   }
 
@@ -169,18 +169,18 @@ export async function createCookieFile(sendEvent) {
       } else {
         sendEvent({ message: '✅ Cookie existant validé.' });
       }
-    } catch (err) {
+    } catch {
       needToRegenerate = true;
-      sendEvent({ message: '⚠️ Erreur lors du test du cookie existant, régénération nécessaire.' });
+      sendEvent({ message: '⚠️ Erreur test cookie existant, régénération nécessaire.' });
     }
   }
 
   if (needToRegenerate) {
-    const cookiesFromBrowserArg = `firefox:${FIREFOX_FOLDER}/${FIREFOX_PROFILE}`;
-    const cmd = [
+    const profile = `${FIREFOX_FOLDER}/${FIREFOX_PROFILE}`;
+    const args = [
       'yt-dlp',
       '--cookies-from-browser',
-      cookiesFromBrowserArg,
+      `firefox:${profile}`,
       '--cookies',
       COOKIE_FILE,
       '--skip-download',
@@ -188,19 +188,18 @@ export async function createCookieFile(sendEvent) {
     ];
 
     try {
-      const output = await runCommand(cmd);
+      const output = await runCommand(args);
 
       if (output.toLowerCase().includes('sign in')) {
         sendEvent({
           error: '🛑 Impossible de générer un cookie valide. Vérifie ton profil Firefox.',
         });
-        throw new Error('🛑 Cookie Firefox invalide. Connecte-toi à YouTube puis régénère.');
+        return;
       }
 
-      sendEvent({ message: `✅ Nouveau cookie généré avec succès.` });
+      sendEvent({ message: '✅ Nouveau cookie généré avec succès.' });
     } catch (err) {
-      sendEvent({ error: `Erreur lors de la régénération du cookie : ${err.message}` });
-      throw err;
+      sendEvent({ error: `Erreur génération cookie : ${err.message}` });
     }
   }
 }

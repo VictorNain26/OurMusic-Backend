@@ -1,6 +1,6 @@
-// ✅ Vérifie et crée un dossier s'il n'existe pas, avec permissions adaptées
 import fs from 'fs/promises';
 
+// ✅ Vérifie et crée un dossier s'il n'existe pas, avec permissions adaptées
 export async function ensureDirectoryExists(dirPath) {
   try {
     await fs.access(dirPath);
@@ -12,8 +12,8 @@ export async function ensureDirectoryExists(dirPath) {
 }
 
 // ✅ Exécute une commande externe et retourne la sortie standard ou génère une erreur
-export async function runCommand(command, args = [], options = {}) {
-  const proc = Bun.spawn([command, ...args], {
+export async function runCommand(args, options = {}) {
+  const proc = Bun.spawn(args, {
     stdout: 'pipe',
     stderr: 'pipe',
     ...options,

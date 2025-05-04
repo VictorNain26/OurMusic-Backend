@@ -1,6 +1,5 @@
 import { handleSpotifyScrape } from '../services/spotifyService.js';
 
-// ⚠️ Simule un admin (même logique que dans sync-by-id.js)
 const fakeAdmin = { id: 'admin-cron', role: 'admin', email: 'admin@ourmusic.fr' };
 
 const logger = payload => {
@@ -9,11 +8,12 @@ const logger = payload => {
 };
 
 export async function runScrapeCronJob() {
-  console.log('[CRON] 🧪 Début de la tâche de scraping Spotify + création de playlists');
+  console.log('[CRON] 🔎 Début de la tâche de scraping HypeMachine');
+
   try {
     await handleSpotifyScrape(fakeAdmin, logger);
     console.log('[CRON] ✅ Scraping terminé avec succès.');
   } catch (err) {
-    console.error('[CRON] ❌ Erreur pendant le scraping :', err);
+    console.error('[CRON] ❌ Erreur pendant le scraping (non capturée dans logger) :', err.message);
   }
 }
