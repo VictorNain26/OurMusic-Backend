@@ -163,15 +163,15 @@ export async function createCookieFile(sendEvent) {
       ];
       const output = await runCommand(checkCmd);
 
-      if (output.toLowerCase().includes('sign in')) {
+      if (!output || output.toLowerCase().includes('sign in')) {
         needToRegenerate = true;
         sendEvent({ message: '⚠️ Cookie existant invalide, régénération nécessaire.' });
       } else {
         sendEvent({ message: '✅ Cookie existant validé.' });
       }
-    } catch {
+    } catch (err) {
       needToRegenerate = true;
-      sendEvent({ message: '⚠️ Erreur test cookie existant, régénération nécessaire.' });
+      sendEvent({ error: `⚠️ Erreur test cookie existant : ${err.message}` });
     }
   }
 
@@ -190,7 +190,7 @@ export async function createCookieFile(sendEvent) {
     try {
       const output = await runCommand(args);
 
-      if (output.toLowerCase().includes('sign in')) {
+      if (!output || output.toLowerCase().includes('sign in')) {
         sendEvent({
           error: '🛑 Impossible de générer un cookie valide. Vérifie ton profil Firefox.',
         });
@@ -199,7 +199,9 @@ export async function createCookieFile(sendEvent) {
 
       sendEvent({ message: '✅ Nouveau cookie généré avec succès.' });
     } catch (err) {
-      sendEvent({ error: `Erreur génération cookie : ${err.message}` });
+      sendEvent({
+        error: `❌ Erreur lors de la génération du cookie : ${err.message || 'commande échouée'}`,
+      });
     }
   }
 }
