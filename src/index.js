@@ -6,6 +6,10 @@ import { betterAuthPlugin } from './lib/auth/betterAuthPlugin.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
 import { trackRoutes } from './routes/track.routes.js';
 
+if (process.env.ENABLE_CRON === 'true') {
+  import('./cron');
+}
+
 const app = new Elysia()
   // 🌐 Log propre des requêtes
   .onRequest(({ request }) => {

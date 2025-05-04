@@ -80,7 +80,7 @@ export async function handleSpotifyScrape(user, send) {
           send({ message: `❌ Introuvable sur Spotify : ${track.artist} - ${track.title}` });
         }
 
-        await delay(300);
+        await delay(500);
       }
 
       send({
@@ -139,8 +139,15 @@ export async function handleSpotifySyncAll(user, send) {
 
     for (const playlist of playlists) {
       send({ message: `▶ Synchronisation de ${playlist.name}` });
-      await syncSinglePlaylist(playlist, token, send);
-      await delay(5000);
+
+      try {
+        await syncSinglePlaylist(playlist, token, send);
+      } catch (err) {
+        send({ error: `❌ Erreur sur ${playlist.name} : ${err.message}` });
+      }
+
+      send({ message: '🕒 Pause de 10 minutes avant la prochaine playlist' });
+      await delay(10 * 60 * 1000);
     }
 
     await runCommand(['chmod', '-R', '777', process.env.PLAYLIST_PATH]);
@@ -217,7 +224,7 @@ async function addTracksIfNotExist(playlist, uris, token, send) {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         send({ message: `🎶 ${chunk.length} titres ajoutés à ${playlist.name}` });
-        await delay(300);
+        await delay(2000);
       }
     } else {
       send({ message: `✅ Aucun nouveau titre à ajouter dans ${playlist.name}` });
