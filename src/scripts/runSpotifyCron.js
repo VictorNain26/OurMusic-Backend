@@ -1,3 +1,3 @@
-import { runSpotifyCronSync } from '../src/jobs/spotify.cron.js';
+import { runSpotifyCronSync } from '../jobs/spotify.cron.js';
 
 await runSpotifyCronSync();

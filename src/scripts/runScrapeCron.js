@@ -1,3 +1,3 @@
-import { runScrapeCronJob } from '../src/jobs/scrape.cron.js';
+import { runScrapeCronJob } from '../jobs/scrape.cron.js';
 
 await runScrapeCronJob();
