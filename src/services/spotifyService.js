@@ -53,8 +53,16 @@ export async function cleanupSpotdlFiles(sendEvent) {
 
 // ✅ Scraping HypeMachine + ajout brut sur Spotify
 export async function handleSpotifyScrape(user, send) {
-  const genres = ['indie+rock', 'pop', 'electronica', 'electronic', 'hip+hop', 'rock'];
-  const excludedTags = ['trance', 'metal', 'dubstep', 'screamo', 'dance', 'easy+listening'];
+  const genres = ['indie+rock', 'pop', 'electronica', 'electronic', 'hip+hop', 'rock', 'classical'];
+  const excludedTags = [
+    'trance',
+    'metal',
+    'dubstep',
+    'screamo',
+    'dance',
+    'easy+listening',
+    'heavy+metal',
+  ];
 
   send({ message: `👤 Admin a lancé un scraping.` });
 
