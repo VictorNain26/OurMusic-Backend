@@ -126,10 +126,16 @@ export async function handleSpotifySyncAll(user, send) {
   send({ message: `🔁 Admin a lancé une synchronisation globale.` });
 
   try {
+    send({ message: '🔎 Étape 1 : Création ou validation du cookie...' });
     await createCookieFile(send);
+
+    send({ message: '📂 Étape 2 : Vérification du dossier de travail...' });
     await ensureDirectoryExists('/root/.spotdl/temp');
 
+    send({ message: '🔑 Étape 3 : Récupération du token Spotify...' });
     const token = await getSpotifyAccessToken();
+
+    send({ message: '📋 Étape 4 : Récupération des playlists OurMusic...' });
     const playlists = await getOurMusicPlaylists(token);
 
     if (!playlists.length) {
@@ -137,21 +143,26 @@ export async function handleSpotifySyncAll(user, send) {
       return;
     }
 
+    send({ message: `🎵 ${playlists.length} playlists à synchroniser.` });
+
     for (const playlist of playlists) {
-      send({ message: `▶ Synchronisation de ${playlist.name}` });
+      send({ message: `🎶 Synchronisation de la playlist : ${playlist.name}` });
 
       try {
         await syncSinglePlaylist(playlist, token, send);
+        send({ message: `✅ Playlist synchronisée : ${playlist.name}` });
       } catch (err) {
         send({ error: `❌ Erreur sur ${playlist.name} : ${err.message}` });
       }
 
-      send({ message: '🕒 Pause de 10 minutes avant la prochaine playlist' });
+      send({ message: '🕒 Pause de 10 minutes avant la prochaine playlist...' });
       await delay(10 * 60 * 1000);
     }
 
+    send({ message: '🔧 Étape finale : permissions sur les fichiers...' });
     await runCommand(['chmod', '-R', '777', process.env.PLAYLIST_PATH]);
-    send({ message: '✅ Synchronisation globale terminée.' });
+
+    send({ message: '🏁 ✅ Synchronisation globale terminée avec succès.' });
   } catch (err) {
     console.error('[handleSpotifySyncAll Error]', err);
     send({ error: err.message || 'Erreur pendant la synchronisation globale' });
