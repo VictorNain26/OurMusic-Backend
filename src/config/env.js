@@ -10,6 +10,7 @@ export const env = {
     ? Bun.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
     : ['http://localhost:8080'],
   SPOTIFY_DELAY_MS: Bun.env.SPOTIFY_DELAY_MS ? parseInt(Bun.env.SPOTIFY_DELAY_MS) : 500,
+  ENABLE_CRON: Bun.env.ENABLE_CRON === 'true',
 };
 
 if (!env.DATABASE_URL) throw new Error('❌ DATABASE_URL manquant');
