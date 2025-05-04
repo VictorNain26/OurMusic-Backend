@@ -19,20 +19,19 @@ export async function runCommand(args, options = {}) {
     ...options,
   });
 
-  const stdout = new TextDecoder().decode((await proc.stdout?.text()) ?? '').trim();
-  const stderr = new TextDecoder().decode((await proc.stderr?.text()) ?? '').trim();
+  const stdoutText = await new Response(proc.stdout).text();
+  const stderrText = await new Response(proc.stderr).text();
 
   if (proc.exitCode !== 0) {
-    console.error('[runCommand Error]', stderr);
-    throw new Error(stderr || `Commande échouée avec code ${proc.exitCode}`);
+    console.error('[runCommand Error]', stderrText.trim());
+    throw new Error(stderrText.trim() || `Commande échouée avec code ${proc.exitCode}`);
   }
 
-  // Afficher le stderr en warning non bloquant
-  if (stderr) {
-    console.warn('[runCommand Warning]', stderr);
+  if (stderrText.trim()) {
+    console.warn('[runCommand Warning]', stderrText.trim());
   }
 
-  return stdout;
+  return stdoutText.trim();
 }
 
 // ✅ Attente asynchrone
