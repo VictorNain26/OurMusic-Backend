@@ -1,3 +1,4 @@
+// src/lib/auth/index.js
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { admin } from 'better-auth/plugins';
@@ -48,6 +49,7 @@ export const auth = betterAuth({
 
   plugins: [admin()],
 
+  // Auth par email / mot de passe
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
@@ -64,11 +66,11 @@ export const auth = betterAuth({
     },
 
     onResetPassword: async ctx => {
-      const redirectUrl = `${env.FRONTEND_BASE_URL}?password_reset=success`;
-      return ctx.redirect(redirectUrl);
+      return ctx.redirect(`${env.FRONTEND_BASE_URL}?password_reset=success`);
     },
   },
 
+  // Vérification de l'email
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
@@ -85,19 +87,27 @@ export const auth = betterAuth({
     },
 
     onVerified: async ctx => {
-      const redirectUrl = `${env.FRONTEND_BASE_URL}?email_verified=success`;
-      return ctx.redirect(redirectUrl);
+      return ctx.redirect(`${env.FRONTEND_BASE_URL}?email_verified=success`);
     },
   },
 
+  // 🔗 Authentification Spotify native
+  social: {
+    spotify: {
+      clientId: process.env.SPOTIFY_CLIENT_ID,
+      clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+      scopes: ['user-read-email', 'playlist-modify-private', 'playlist-modify-public'],
+      callbackUrl: `${env.BACKEND_BASE_URL}/api/auth/spotify/callback`,
+    },
+  },
+
+  // Logs utiles
   onSignUp(ctx) {
     console.log(`🆕 Nouvel utilisateur inscrit : ${ctx.user.email}`);
   },
-
   onLogin(ctx) {
     console.log(`✅ Connexion réussie : ${ctx.user.email}`);
   },
-
   onLogout(ctx) {
     console.log(`👋 Déconnexion : ${ctx.user.email}`);
   },
