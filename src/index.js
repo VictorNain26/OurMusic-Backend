@@ -4,6 +4,7 @@ import { env } from './config/env.js';
 import { betterAuthPlugin } from './lib/auth/betterAuthPlugin.js';
 import { spotifyRoutes } from './routes/spotify.routes.js';
 import { trackRoutes } from './routes/track.routes.js';
+import { spotifySyncRoutes } from './routes/spotify-sync.routes.js';
 
 const app = new Elysia();
 
@@ -33,6 +34,7 @@ app.use(betterAuthPlugin);
 // ✅ Routes
 app.use(trackRoutes);
 app.use(spotifyRoutes);
+app.use(spotifySyncRoutes);
 
 // ✅ Healthcheck
 app.get('/health', () => ({
