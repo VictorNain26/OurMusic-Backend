@@ -1,67 +1,92 @@
+// src/routes/spotify-sync.routes.js
 import { Elysia } from 'elysia';
 import { auth } from '../lib/auth/index.js';
 import { db, schema } from '../db/index.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import axios from 'axios';
-import { spotifyRequestWithRetry } from '../utils/spotifyApi.js';
+import { getAllUserPlaylists } from '../spotify.js';
 import { getFreshSpotifyAccessToken } from '../services/spotifyTokenHelper.js';
 import { searchTrackOnSpotify } from '../spotify.js';
 
+/* ───────────────── util ───────────────── */
 function chunkArray(arr, size) {
-  const result = [];
-  for (let i = 0; i < arr.length; i += size) {
-    result.push(arr.slice(i, i + size));
-  }
-  return result;
+  const res = [];
+  for (let i = 0; i < arr.length; i += size) res.push(arr.slice(i, i + size));
+  return res;
+}
+
+const PLAYLIST_CANON = 'ourmusic-morceaux-aimes';
+
+function canon(str = '') {
+  return str
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[-‐‑–—]/g, '-')
+    .toLowerCase()
+    .replace(/\s/g, '')
+    .replace(/-/g, '-');
 }
 
 export const spotifySyncRoutes = new Elysia({ prefix: '/api/spotify' })
+  /* ─── auth macro ─── */
   .macro({
     auth: {
       async resolve({ error, request: { headers } }) {
-        const session = await auth.api.getSession({ headers });
-        if (!session) return error(401);
-        return { user: session.user, session: session.session };
+        const sess = await auth.api.getSession({ headers });
+        if (!sess) return error(401);
+        return { user: sess.user, session: sess.session };
       },
     },
   })
 
+  /* ─── endpoint ─── */
   .post(
     '/sync-liked',
     async ({ user }) => {
+      console.log(`🎧 [SYNC‑LIKED] user=${user.id}`);
+
+      /* 1. tracks aimés */
       const likedTracks = await db
         .select()
         .from(schema.likedTracks)
         .where(eq(schema.likedTracks.userId, user.id));
 
+      if (!likedTracks.length) {
+        return { status: 400, error: 'Aucun morceau liké.' };
+      }
+      console.log(`→ ${likedTracks.length} track(s) liké(s)`);
+
+      /* --- compte Spotify du user --- */
       const spotifyAccount = await db.query.account.findFirst({
-        where: eq(schema.account.userId, user.id),
+        where: and(eq(schema.account.userId, user.id), eq(schema.account.providerId, 'spotify')),
       });
 
-      if (!spotifyAccount || spotifyAccount.providerId !== 'spotify') {
-        return { status: 400, error: 'Compte Spotify non lié' };
+      if (!spotifyAccount) {
+        return { status: 400, error: 'Aucun compte Spotify lié.' };
       }
 
       const token = await getFreshSpotifyAccessToken(spotifyAccount);
+      console.log('→ access token OK');
 
-      // Étape 1 : recherche des URI Spotify des morceaux likés
+      /* 3. convertir en URI Spotify */
       const likedUris = [];
-      for (const track of likedTracks) {
-        const uri = await searchTrackOnSpotify(track.artist, track.title, token);
+      for (const t of likedTracks) {
+        const uri = await searchTrackOnSpotify(t.artist, t.title, token);
         if (uri) likedUris.push(uri);
       }
+      if (!likedUris.length) {
+        return { status: 500, error: 'Aucune correspondance trouvée sur Spotify.' };
+      }
+      console.log(`→ ${likedUris.length} URI trouvées`);
 
-      // Étape 2 : chercher ou créer la playlist
-      const playlists = await spotifyRequestWithRetry(
-        `https://api.spotify.com/v1/me/playlists?limit=50`,
-        token
-      );
-      let playlist = playlists.data.items.find(p =>
-        p.name.toLowerCase().includes('ourmusic - morceaux aimés')
-      );
+      /* 4. récupérer / créer playlist */
+      const allPlaylists = await getAllUserPlaylists(token);
 
+      let playlist = allPlaylists.find(
+        p => canon(p.name) === PLAYLIST_CANON && p.owner?.id === user.id
+      );
       if (!playlist) {
-        const res = await axios.post(
+        const { data } = await axios.post(
           'https://api.spotify.com/v1/me/playlists',
           {
             name: 'OurMusic - Morceaux Aimés',
@@ -70,43 +95,38 @@ export const spotifySyncRoutes = new Elysia({ prefix: '/api/spotify' })
           },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        playlist = res.data;
+        playlist = data;
+        console.log(`→ playlist créée (${playlist.id})`);
+      } else {
+        console.log(`→ playlist trouvée (${playlist.id})`);
       }
 
-      // Étape 3 : récupérer tous les morceaux actuels de la playlist
+      /* 5. lire contenu actuel */
       const existingUris = [];
       let url = `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?fields=items(track(uri)),next&limit=100`;
       while (url) {
-        const res = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        res.data.items.forEach(item => {
-          if (item.track?.uri) existingUris.push(item.track.uri);
-        });
-        url = res.data.next;
+        const { data } = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+        data.items.forEach(i => i.track?.uri && existingUris.push(i.track.uri));
+        url = data.next;
       }
 
-      // Étape 4 : calcul des ajouts et suppressions
-      const urisToAdd = likedUris.filter(uri => !existingUris.includes(uri));
-      const urisToRemove = existingUris.filter(uri => !likedUris.includes(uri));
+      /* 6. diff */
+      const toAdd = likedUris.filter(u => !existingUris.includes(u));
+      const toRemove = existingUris.filter(u => !likedUris.includes(u));
+      console.log(`→ diff = +${toAdd.length} / -${toRemove.length}`);
 
-      // Suppression
-      if (urisToRemove.length > 0) {
-        const chunks = chunkArray(urisToRemove, 100);
-        for (const chunk of chunks) {
-          await axios.request({
-            method: 'DELETE',
-            url: `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
+      /* 7. appliquer */
+      if (toRemove.length) {
+        for (const chunk of chunkArray(toRemove, 100)) {
+          await axios.delete(`https://api.spotify.com/v1/playlists/${playlist.id}/tracks`, {
             headers: { Authorization: `Bearer ${token}` },
             data: { tracks: chunk.map(uri => ({ uri })) },
           });
         }
       }
 
-      // Ajout
-      if (urisToAdd.length > 0) {
-        const chunks = chunkArray(urisToAdd, 100);
-        for (const chunk of chunks) {
+      if (toAdd.length) {
+        for (const chunk of chunkArray(toAdd, 100)) {
           await axios.post(
             `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
             { uris: chunk },
@@ -115,10 +135,11 @@ export const spotifySyncRoutes = new Elysia({ prefix: '/api/spotify' })
         }
       }
 
+      console.log('→ synchronisation terminée');
       return {
-        message: `✅ Synchronisation complète terminée`,
-        added: urisToAdd.length,
-        removed: urisToRemove.length,
+        message: '✅ Synchronisation terminée',
+        added: toAdd.length,
+        removed: toRemove.length,
         total: likedUris.length,
         playlistId: playlist.id,
       };
