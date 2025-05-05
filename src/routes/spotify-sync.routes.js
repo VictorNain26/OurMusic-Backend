@@ -66,6 +66,7 @@ export const spotifySyncRoutes = new Elysia({ prefix: '/api/spotify' })
       }
 
       const token = await getFreshSpotifyAccessToken(spotifyAccount);
+      const spotifyOwnerId = spotifyAccount.accountId;
       console.log('→ access token OK');
 
       /* 3. convertir en URI Spotify */
@@ -83,7 +84,7 @@ export const spotifySyncRoutes = new Elysia({ prefix: '/api/spotify' })
       const allPlaylists = await getAllUserPlaylists(token);
 
       let playlist = allPlaylists.find(
-        p => canon(p.name) === PLAYLIST_CANON && p.owner?.id === user.id
+        p => canon(p.name) === PLAYLIST_CANON && p.owner?.id === spotifyOwnerId
       );
       if (!playlist) {
         const { data } = await axios.post(
