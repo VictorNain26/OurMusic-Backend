@@ -4,6 +4,7 @@ import { db, schema } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 import axios from 'axios';
 import { spotifyRequestWithRetry } from '../utils/spotifyApi.js';
+import { getFreshSpotifyAccessToken } from '../services/spotifyTokenHelper.js';
 import { searchTrackOnSpotify } from '../spotify.js';
 
 function chunkArray(arr, size) {
@@ -41,7 +42,7 @@ export const spotifySyncRoutes = new Elysia({ prefix: '/api/spotify' })
         return { status: 400, error: 'Compte Spotify non lié' };
       }
 
-      const token = spotifyAccount.accessToken;
+      const token = await getFreshSpotifyAccessToken(spotifyAccount);
 
       // Étape 1 : recherche des URI Spotify des morceaux likés
       const likedUris = [];

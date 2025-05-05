@@ -13,7 +13,6 @@ const isProd = process.env.ENV === 'production';
 export const auth = betterAuth({
   url: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
-
   trustedOrigins: env.ALLOWED_ORIGINS,
 
   database: drizzleAdapter(db, {
@@ -70,6 +69,12 @@ export const auth = betterAuth({
     },
   },
 
+  session: {
+    include: {
+      account: true,
+    },
+  },
+
   // Vérification de l'email
   emailVerification: {
     sendOnSignUp: true,
@@ -92,7 +97,16 @@ export const auth = betterAuth({
   },
 
   // 🔗 Authentification Spotify native
-  social: {
+  /* ──────────────── Account Linking ──────────────── */
+  account: {
+    accountLinking: {
+      enabled: true, // autorise le “link”
+      trustedProviders: ['spotify'],
+      updateAccountOnSignIn: true, // rafraîchit les tokens si on se relog
+    },
+  },
+  /* ──────────────── Social providers ──────────────── */
+  socialProviders: {
     spotify: {
       clientId: process.env.SPOTIFY_CLIENT_ID,
       clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
