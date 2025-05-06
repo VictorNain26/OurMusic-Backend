@@ -1,8 +1,18 @@
 import { scrapeTracksForGenres } from '../scraper.js';
 
 (async () => {
-  const genres = ['indie+rock', 'pop', 'rock']; // genres test
-  const excludedTags = ['metal', 'dubstep', 'trance', 'industrial+metal'];
+  const genres = ['indie+rock', 'pop', 'electronica', 'electronic', 'hip+hop', 'rock', 'classical'];
+  const excludedTags = [
+    'trance',
+    'metal',
+    'dubstep',
+    'screamo',
+    'dance',
+    'easy+listening',
+    'heavy+metal',
+    'industrial+metal',
+    'heavy+metal',
+  ];
   const pages = 1;
 
   console.log('🚀 Lancement du scraping test…');

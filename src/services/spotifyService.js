@@ -63,6 +63,7 @@ export async function handleSpotifyScrape(user, send) {
     'easy+listening',
     'heavy+metal',
     'industrial+metal',
+    'heavy+metal',
   ];
 
   send({ message: `👤 Admin a lancé un scraping.` });
