@@ -53,17 +53,31 @@ export async function cleanupSpotdlFiles(sendEvent) {
 
 // ✅ Scraping HypeMachine + ajout brut sur Spotify
 export async function handleSpotifyScrape(user, send) {
-  const genres = ['indie+rock', 'pop', 'electronica', 'electronic', 'hip+hop', 'rock', 'classical'];
+  const genres = [
+    'indie+rock',
+    'pop',
+    'electronica',
+    'electronic',
+    'hip+hop',
+    'rock',
+    'classical',
+    'awesome',
+  ];
   const excludedTags = [
     'trance',
     'metal',
     'dubstep',
+    'acid',
     'screamo',
-    'dance',
     'easy+listening',
     'heavy+metal',
     'industrial+metal',
-    'heavy+metal',
+    'emo',
+    'black+metal',
+    'death+metal',
+    'hardcore',
+    'reggae',
+    'trash+metal',
   ];
 
   send({ message: `👤 Admin a lancé un scraping.` });
@@ -90,7 +104,7 @@ export async function handleSpotifyScrape(user, send) {
           send({ message: `❌ Introuvable sur Spotify : ${track.artist} - ${track.title}` });
         }
 
-        await delay(500);
+        await delay(5000);
       }
 
       send({

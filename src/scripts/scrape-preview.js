@@ -1,36 +1,59 @@
 import { scrapeTracksForGenres } from '../scraper.js';
 
+const genres = [
+  'indie+rock',
+  'pop',
+  'electronica',
+  'electronic',
+  'hip+hop',
+  'rock',
+  'classical',
+  'awesome',
+];
+const excludedTags = [
+  'trance',
+  'metal',
+  'dubstep',
+  'acid',
+  'screamo',
+  'easy+listening',
+  'heavy+metal',
+  'industrial+metal',
+  'emo',
+  'black+metal',
+  'death+metal',
+  'hardcore',
+  'reggae',
+  'trash+metal',
+];
+
 (async () => {
-  const genres = ['indie+rock', 'pop', 'electronica', 'electronic', 'hip+hop', 'rock', 'classical'];
-  const excludedTags = [
-    'trance',
-    'metal',
-    'dubstep',
-    'screamo',
-    'dance',
-    'easy+listening',
-    'heavy+metal',
-    'industrial+metal',
-    'heavy+metal',
-  ];
-  const pages = 1;
+  console.time('scrape');
+  const results = await scrapeTracksForGenres(genres, 1, excludedTags);
+  console.timeEnd('scrape');
 
-  console.log('🚀 Lancement du scraping test…');
-  try {
-    const results = await scrapeTracksForGenres(genres, pages, excludedTags);
+  // ------------------------------
+  //  Vérification des doublons
+  // ------------------------------
+  const flat = Object.values(results).flat();
+  const uniq = new Set(flat.map(t => `${t.artist.toLowerCase()}-${t.title.toLowerCase()}`));
+  const total = flat.length;
 
-    for (const genre of Object.keys(results)) {
-      const tracks = results[genre];
-      console.log(`\n🎧 Genre : ${genre} (${tracks.length} morceaux retenus)\n`);
-      tracks.forEach(({ artist, title }, index) => {
-        console.log(`  ${index + 1}. ${artist} - ${title}`);
-      });
-    }
+  console.log(`\n🎧  Total récupéré : ${total}`);
+  console.log(`✅  Uniques        : ${uniq.size}`);
 
-    console.log('\n✅ Scraping terminé avec succès.');
-    process.exit(0);
-  } catch (err) {
-    console.error('❌ Erreur pendant le test de scraping :', err.message);
+  if (total !== uniq.size) {
+    console.log('❌  DUPLICATES FOUND\n');
+    // Affiche exactement quels titres sont dupliqués
+    const seen = new Set();
+    flat.forEach(({ artist, title, tags }) => {
+      const key = `${artist.toLowerCase()}-${title.toLowerCase()}`;
+      if (seen.has(key)) console.log(`· ${artist} – ${title}`);
+      else seen.add(key);
+    });
     process.exit(1);
+  } else {
+    console.log('🎉  Aucun doublon détecté');
+    process.exit(0);
   }
 })();
