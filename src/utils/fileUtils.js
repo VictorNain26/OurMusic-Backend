@@ -19,12 +19,16 @@ export async function runCommand(args, options = {}) {
     ...options,
   });
 
-  const stdoutText = await new Response(proc.stdout).text();
-  const stderrText = await new Response(proc.stderr).text();
+  // On lit stdout/stderr **en parallèle** de la fin du process
+  const [stdoutText, stderrText, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
 
-  if (proc.exitCode !== 0) {
+  if (exitCode !== 0) {
     console.error('[runCommand Error]', stderrText.trim());
-    throw new Error(stderrText.trim() || `Commande échouée avec code ${proc.exitCode}`);
+    throw new Error(stderrText.trim() || `Commande échouée avec code ${exitCode}`);
   }
 
   if (stderrText.trim()) {

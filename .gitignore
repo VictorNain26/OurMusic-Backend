@@ -176,5 +176,5 @@ dist
 .env
 music.youtube.com_cookies.txt
 update_cookie.log
-mozilla/
+.mozilla/
 test-scrape.js

@@ -179,8 +179,8 @@ export async function handleSpotifySyncAll(user, send) {
         send({ error: `❌ Erreur sur ${playlist.name} : ${err.message}` });
       }
 
-      send({ message: '🕒 Pause de 10 minutes avant la prochaine playlist...' });
-      await delay(10 * 60 * 1000);
+      send({ message: '🕒 Pause de 5 minutes avant la prochaine playlist...' });
+      await delay(5 * 60 * 1000);
     }
 
     send({ message: '🔧 Étape finale : permissions sur les fichiers...' });
