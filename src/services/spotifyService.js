@@ -19,7 +19,7 @@ import axios from 'axios';
 const {
   SPOTDL_FORMAT = 'mp3',
   SPOTDL_BITRATE = '192k',
-  SPOTDL_THREADS = '4',
+  SPOTDL_THREADS = '1',
   SPOTDL_FFMPEG_PATH = 'ffmpeg',
   SPOTDL_USE_USER_AUTH = 'false',
   PLAYLIST_PATH,
