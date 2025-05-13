@@ -159,7 +159,7 @@ export async function createCookieFile(sendEvent) {
         '--skip-download',
         '--quiet',
         '--no-warnings',
-        'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
+        'https://music.youtube.com/watch?v=9bZkp7q19f0',
       ];
       const output = await runCommand(checkCmd);
 
@@ -184,7 +184,7 @@ export async function createCookieFile(sendEvent) {
       '--cookies',
       COOKIE_FILE,
       '--skip-download',
-      'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
+      'https://music.youtube.com/watch?v=9bZkp7q19f0',
     ];
 
     try {
