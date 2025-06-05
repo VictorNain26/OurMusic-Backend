@@ -1,21 +1,21 @@
 # OurMusic Backend
 
-OurMusic Backend est une API écrite avec [Elysia](https://elysiajs.com/) et fonctionnant sous [Bun](https://bun.sh/). Elle expose plusieurs routes permettant de lier l'application OurMusic à Spotify et de gérer les morceaux likés par les utilisateurs.
+OurMusic Backend is an API built with [Elysia](https://elysiajs.com/) and runs on [Bun](https://bun.sh/). It exposes various routes that connect the OurMusic application to Spotify and manage the tracks liked by users.
 
-## Fonctionnalités
+## Features
 
-- Authentification via [BetterAuth](https://www.npmjs.com/package/better-auth)
-- Gestion des "likes" sur des morceaux (ajout, suppression, liste)
-- Synchronisation avec des playlists Spotify
-- Scraping de titres depuis HypeMachine
-- Jobs CRON optionnels pour synchroniser automatiquement les playlists et lancer des sessions de scraping
-- Flux SSE pour suivre l'avancement des tâches longue durée
+- Authentication via [BetterAuth](https://www.npmjs.com/package/better-auth)
+- Manage track "likes" (add, remove, list)
+- Synchronisation with Spotify playlists
+- Scraping titles from HypeMachine
+- Optional CRON jobs to automatically synchronise playlists and start scraping sessions
+- SSE streams to follow the progress of long-running tasks
 
-## Pré‑requis
+## Requirements
 
-- [Bun](https://bun.sh/) installé localement
-- Une base de données PostgreSQL accessible
-- Un compte Spotify développeur pour récupérer les identifiants API
+- [Bun](https://bun.sh/) installed locally
+- Access to a PostgreSQL database
+- A Spotify developer account to obtain API credentials
 
 ## Installation
 
@@ -23,51 +23,51 @@ OurMusic Backend est une API écrite avec [Elysia](https://elysiajs.com/) et fon
 bun install
 ```
 
-Copiez le fichier `.env.exemple` vers `.env` puis complétez toutes les variables d'environnement nécessaires :
+Copy `.env.example` to `.env` and fill in all necessary environment variables:
 
 ```bash
-cp .env.exemple .env
+cp .env.example .env
 ```
 
-Les variables importantes sont :
+Important variables include:
 
-- `DATABASE_URL` – URL de connexion PostgreSQL
-- `BETTER_AUTH_URL` et `BETTER_AUTH_SECRET` – configuration de BetterAuth
+- `DATABASE_URL` – PostgreSQL connection URL
+- `BETTER_AUTH_URL` and `BETTER_AUTH_SECRET` – BetterAuth configuration
 - `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_USER_ID`, `SPOTIFY_REFRESH_TOKEN`
-- `PLAYLIST_PATH` et `COOKIE_FILE` pour `spotdl`
-- Paramètres SMTP pour l'envoi d'e‑mails
-- `ENABLE_CRON` pour activer les tâches planifiées
+- `PLAYLIST_PATH` and `COOKIE_FILE` for `spotdl`
+- SMTP settings for sending emails
+- `ENABLE_CRON` to activate scheduled tasks
 
-## Lancement en développement
+## Running in development
 
 ```bash
-bun run db:push   # exécute les migrations
+bun run db:push   # run migrations
 bun run start
 ```
 
-Un endpoint de santé est disponible sur [http://localhost:3000/health](http://localhost:3000/health).
+A health endpoint is available at [http://localhost:3000/health](http://localhost:3000/health).
 
-## Utilisation avec Docker
+## Docker usage
 
-Une image Docker est fournie :
+A Docker image is provided:
 
 ```bash
 docker build -t ourmusic-backend .
 docker run --env-file .env -p 3000:3000 ourmusic-backend
 ```
 
-Les migrations sont lancées automatiquement via `entrypoint.sh` au démarrage du conteneur.
+Migrations are launched automatically via `entrypoint.sh` when the container starts.
 
-## Scripts utiles
+## Helpful scripts
 
-- `bun run seed:admin` – crée un compte administrateur
-- `bun run reset:all` – réinitialise complètement la base et les fichiers spotDL
-- `bun run lint` – lance ESLint sur tout le projet
+- `bun run seed:admin` – create an administrator account
+- `bun run reset:all` – fully reset the database and spotDL files
+- `bun run lint` – run ESLint over the entire project
 
-## Déploiement
+## Deployment
 
-Un workflow GitHub Actions (`.github/workflows/deploy.yml`) déploie automatiquement la branche `master` sur le serveur VPS configuré.
+A GitHub Actions workflow (`.github/workflows/deploy.yml`) automatically deploys the `master` branch to the configured VPS.
 
 ---
 
-Ce projet n'inclut pas de licence spécifique.
+This project does not include a specific license.
