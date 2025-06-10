@@ -70,4 +70,6 @@ A GitHub Actions workflow (`.github/workflows/deploy.yml`) automatically deploys
 
 ---
 
-This project does not include a specific license.
+## License
+
+This project is licensed under the [MIT License](LICENSE).
